@@ -1,0 +1,21 @@
+struct Player {
+    hp: i64,
+}
+
+impl Player {
+    fn is_alive(&self) -> bool {
+        return self.hp > 0;
+    }
+
+    fn damage(&mut self, amount: i64) {
+        self.hp = self.hp - amount;
+    }
+}
+
+fn main() {
+    let mut p: Player = Player { hp: 10 };
+    print(p.is_alive());
+    p.damage(3);
+    print(p.hp);
+    print(p.is_alive());
+}

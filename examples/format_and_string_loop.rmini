@@ -1,0 +1,18 @@
+fn main() {
+    let letters: String = "rust";
+    let mut count: i64 = 0;
+
+    for ch in letters {
+        println!("letter {}", ch);
+        count = count + 1;
+    }
+
+    let nums: [i64; 3] = [2, 4, 6];
+    let mut total: i64 = 0;
+    for n in nums {
+        total = total + n;
+    }
+
+    let message: String = format!("{} letters, array sum {}", count, total);
+    println!("{}", message);
+}

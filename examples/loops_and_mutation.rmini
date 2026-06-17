@@ -1,0 +1,31 @@
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+fn main() {
+    let mut nums: [i64; 3] = [1, 2, 3];
+    nums[1] = 20;
+
+    let mut total: i64 = 0;
+    for n in nums {
+        total = total + n;
+    }
+
+    let mut p: Point = Point { x: 3, y: 4 };
+    p.x = total;
+
+    let mut pair: (i64, i64) = (1, 2);
+    pair.1 = p.y;
+
+    loop {
+        total = total + 1;
+        if total == 25 {
+            break;
+        }
+    }
+
+    print(p.x);
+    print(pair.1);
+    print(total);
+}

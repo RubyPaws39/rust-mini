@@ -1,0 +1,192 @@
+mod std;
+mod game;
+use std::*;
+use game::*;
+
+fn paddle_hit(row: i64, paddle_y: i64) -> bool {
+    return row >= paddle_y - 1 && row <= paddle_y + 1;
+}
+
+fn cell(row: i64, col: i64, player_y: i64, cpu_y: i64, ball_x: i64, ball_y: i64) -> String {
+    return if row == ball_y && col == ball_x {
+        "o"
+    } else if col == 1 && paddle_hit(row, player_y) {
+        "|"
+    } else if col == 16 && paddle_hit(row, cpu_y) {
+        "|"
+    } else if col == 8 {
+        "."
+    } else {
+        " "
+    };
+}
+
+fn row16(
+    a: String,
+    b: String,
+    c: String,
+    d: String,
+    e: String,
+    f: String,
+    g: String,
+    h: String,
+    i: String,
+    j: String,
+    k: String,
+    l: String,
+    m: String,
+    n: String,
+    o: String,
+    p: String,
+) -> String {
+    return concat(
+        a,
+        concat(
+            b,
+            concat(
+                c,
+                concat(
+                    d,
+                    concat(
+                        e,
+                        concat(
+                            f,
+                            concat(
+                                g,
+                                concat(
+                                    h,
+                                    concat(i, concat(j, concat(k, concat(l, concat(m, concat(n, concat(o, p)))))))
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    );
+}
+
+fn row_text(row: i64, player_y: i64, cpu_y: i64, ball_x: i64, ball_y: i64) -> String {
+    return concat(
+        "#",
+        concat(
+            row16(
+                cell(row, 1, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 2, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 3, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 4, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 5, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 6, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 7, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 8, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 9, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 10, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 11, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 12, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 13, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 14, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 15, player_y, cpu_y, ball_x, ball_y),
+                cell(row, 16, player_y, cpu_y, ball_x, ball_y)
+            ),
+            "#"
+        )
+    );
+}
+
+fn draw(player_y: i64, cpu_y: i64, ball_x: i64, ball_y: i64, player_score: i64, cpu_score: i64) {
+    game::clear();
+    print(game::color("Rust Mini Animated Pong", "bright_cyan"));
+    print("first to 5");
+    print("w/s or arrows move, q quits");
+    print("you");
+    print(player_score);
+    print("cpu");
+    print(cpu_score);
+    print("##################");
+    print(row_text(1, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(2, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(3, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(4, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(5, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(6, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(7, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(8, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(9, player_y, cpu_y, ball_x, ball_y));
+    print(row_text(10, player_y, cpu_y, ball_x, ball_y));
+    print("##################");
+}
+
+fn main() {
+    let mut player_y: i64 = 5;
+    let mut cpu_y: i64 = 5;
+    let mut ball_x: i64 = 8;
+    let mut ball_y: i64 = 5;
+    let mut vx: i64 = 1;
+    let mut vy: i64 = 1;
+    let mut player_score: i64 = 0;
+    let mut cpu_score: i64 = 0;
+
+    while player_score < 5 && cpu_score < 5 {
+        draw(player_y, cpu_y, ball_x, ball_y, player_score, cpu_score);
+        let key: String = game::read_key();
+
+        if len(key) > 0 && contains("wup", key) && player_y > 2 {
+            player_y = player_y - 1;
+        } else if len(key) > 0 && contains("sdown", key) && player_y < 9 {
+            player_y = player_y + 1;
+        }
+
+        if len(key) > 0 && contains("q", key) {
+            cpu_score = 5;
+        }
+
+        if cpu_y < ball_y && cpu_y < 9 {
+            cpu_y = cpu_y + 1;
+        } else if cpu_y > ball_y && cpu_y > 2 {
+            cpu_y = cpu_y - 1;
+        }
+
+        ball_x = ball_x + vx;
+        ball_y = ball_y + vy;
+
+        if ball_y <= 1 {
+            ball_y = 1;
+            vy = 1;
+        } else if ball_y >= 10 {
+            ball_y = 10;
+            vy = -1;
+        }
+
+        if ball_x == 2 && vx < 0 && paddle_hit(ball_y, player_y) {
+            vx = 1;
+        }
+
+        if ball_x == 15 && vx > 0 && paddle_hit(ball_y, cpu_y) {
+            vx = -1;
+        }
+
+        if ball_x <= 0 {
+            cpu_score = cpu_score + 1;
+            ball_x = 8;
+            ball_y = 5;
+            vx = 1;
+            vy = 1;
+        } else if ball_x >= 17 {
+            player_score = player_score + 1;
+            ball_x = 9;
+            ball_y = 5;
+            vx = -1;
+            vy = 1;
+        }
+
+        game::sleep_ms(110);
+    }
+
+    draw(player_y, cpu_y, ball_x, ball_y, player_score, cpu_score);
+
+    if player_score > cpu_score {
+        print(game::color("you win", "bright_green"));
+    } else {
+        print(game::color("cpu wins", "bright_red"));
+    }
+}

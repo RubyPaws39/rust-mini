@@ -1,0 +1,102 @@
+trait Charm {
+    fn charm(&self) -> i64;
+}
+
+enum Place {
+    Garden,
+    Arcade,
+    MoonBridge,
+}
+
+struct Friend {
+    name: String,
+    kindness: i64,
+    sparkle: i64,
+}
+
+impl Charm for Friend {
+    fn charm(&self) -> i64 {
+        return self.kindness + self.sparkle;
+    }
+}
+
+fn scene_bonus(choice: i64) -> i64 {
+    return if choice == 1 {
+        5
+    } else if choice == 2 {
+        3
+    } else {
+        7
+    };
+}
+
+fn place_name(place: Place) -> String {
+    return match place {
+        Place::Garden => "Lantern Garden",
+        Place::Arcade => "Star Arcade",
+        Place::MoonBridge => "Moon Bridge",
+    };
+}
+
+fn ending(score: i64) -> String {
+    return if score >= 24 {
+        "Love blooms under the moonlight."
+    } else if score >= 18 {
+        "A shy spark begins."
+    } else {
+        "Friendship warms the evening."
+    };
+}
+
+fn main() {
+    clear();
+    print(color("Pawprint Promenade", "bright_magenta"));
+    print(color("A tiny wholesome romance game in Rust Mini", "cyan"));
+    sleep_ms(250);
+
+    let player_name: String = input("your name: ");
+    print(concat("Welcome, ", player_name));
+
+    let friend: Friend = Friend { name: "Mika", kindness: 8, sparkle: 6 };
+    print(concat("You meet ", friend.name));
+
+    print("Choose a date spot:");
+    print("1 lantern garden");
+    print("2 star arcade");
+    print("3 moon bridge");
+    let place_choice: i64 = unwrap_or(parse_i64(input("> ")), 3);
+
+    let place: Place = if place_choice == 1 {
+        Place::Garden
+    } else if place_choice == 2 {
+        Place::Arcade
+    } else {
+        Place::MoonBridge
+    };
+
+    print("You visit");
+    print(place_name(place));
+
+    print("Choose a gift:");
+    print("1 handmade charm");
+    print("2 berry tea");
+    print("3 shiny sticker");
+    let gift_choice: i64 = unwrap_or(parse_i64(input("> ")), 1);
+
+    let luck: i64 = rand_i64(1, 6);
+    let mut heart: i64 = friend.charm() + scene_bonus(place_choice) + luck;
+
+    if gift_choice == 1 {
+        heart = heart + 4;
+    } else if gift_choice == 2 {
+        heart = heart + 3;
+    } else {
+        heart = heart + 2;
+    }
+
+    print("heart score");
+    print(heart);
+    print(color(ending(heart), "bright_cyan"));
+
+    write_file("examples/furry_love_save.txt", "date complete");
+}

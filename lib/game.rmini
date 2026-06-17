@@ -1,0 +1,32 @@
+pub fn game_clear() {
+    clear();
+}
+
+pub fn game_sleep_ms(ms: i64) {
+    sleep_ms(ms);
+}
+
+pub fn game_rand_i64(min: i64, max: i64) -> i64 {
+    return rand_i64(min, max);
+}
+
+pub fn game_read_key() -> String {
+    return game::read_key();
+}
+
+pub fn game_color(text: String, name: String) -> String {
+    return color(text, name);
+}
+
+pub fn game_title(text: String) {
+    clear();
+    print(color(text, "bright_cyan"));
+}
+
+pub fn game_prompt_i64(prompt: String, default: i64) -> i64 {
+    return unwrap_or(parse_i64(input(prompt)), default);
+}
+
+pub fn game_line(text: String) {
+    print(text);
+}

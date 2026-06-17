@@ -1,0 +1,28 @@
+pub trait Named {
+    fn name(&self) -> String;
+}
+
+pub struct Player {
+    name: String,
+    hp: i64,
+}
+
+impl Named for Player {
+    fn name(&self) -> String {
+        return self.name;
+    }
+}
+
+impl Player {
+    fn damage(&mut self, amount: i64) {
+        self.hp = self.hp - amount;
+    }
+}
+
+fn main() {
+    let mut player: Player = Player { name: "Ruby", hp: 10 };
+
+    print(player.name());
+    player.damage(3);
+    print(player.hp);
+}

@@ -1,0 +1,80 @@
+mod std;
+mod game;
+use std::*;
+use game::*;
+
+fn row8(a: String, b: String, c: String, d: String, e: String, f: String, g: String, h: String) -> String {
+    return concat(a, concat(b, concat(c, concat(d, concat(e, concat(f, concat(g, h)))))));
+}
+
+fn draw(board: Vec<String>) -> Vec<String> {
+    game::clear();
+    print(game::color("Rust Mini Chess Prototype", "bright_cyan"));
+    print("indices: 0..63, white uppercase, black lowercase");
+    print("0 1 2 3 4 5 6 7");
+    print(row8(board[0], board[1], board[2], board[3], board[4], board[5], board[6], board[7]));
+    print(row8(board[8], board[9], board[10], board[11], board[12], board[13], board[14], board[15]));
+    print(row8(board[16], board[17], board[18], board[19], board[20], board[21], board[22], board[23]));
+    print(row8(board[24], board[25], board[26], board[27], board[28], board[29], board[30], board[31]));
+    print(row8(board[32], board[33], board[34], board[35], board[36], board[37], board[38], board[39]));
+    print(row8(board[40], board[41], board[42], board[43], board[44], board[45], board[46], board[47]));
+    print(row8(board[48], board[49], board[50], board[51], board[52], board[53], board[54], board[55]));
+    print(row8(board[56], board[57], board[58], board[59], board[60], board[61], board[62], board[63]));
+    return board;
+}
+
+fn cpu_move(board: Vec<String>) -> Vec<String> {
+    let mut next: Vec<String> = board;
+
+    if next[12] == "p " && next[20] == ". " {
+        next[20] = "p ";
+        next[12] = ". ";
+    } else if next[13] == "p " && next[21] == ". " {
+        next[21] = "p ";
+        next[13] = ". ";
+    } else if next[14] == "p " && next[22] == ". " {
+        next[22] = "p ";
+        next[14] = ". ";
+    }
+
+    return next;
+}
+
+fn move_piece(board: Vec<String>, from: i64, to: i64) -> Vec<String> {
+    let mut next: Vec<String> = board;
+
+    if from >= 0 && from < 64 && to >= 0 && to < 64 {
+        next[to] = next[from];
+        next[from] = ". ";
+    }
+
+    return next;
+}
+
+fn main() {
+    let mut board: Vec<String> = vec![
+        "r ", "n ", "b ", "q ", "k ", "b ", "n ", "r ",
+        "p ", "p ", "p ", "p ", "p ", "p ", "p ", "p ",
+        ". ", ". ", ". ", ". ", ". ", ". ", ". ", ". ",
+        ". ", ". ", ". ", ". ", ". ", ". ", ". ", ". ",
+        ". ", ". ", ". ", ". ", ". ", ". ", ". ", ". ",
+        ". ", ". ", ". ", ". ", ". ", ". ", ". ", ". ",
+        "P ", "P ", "P ", "P ", "P ", "P ", "P ", "P ",
+        "R ", "N ", "B ", "Q ", "K ", "B ", "N ", "R ",
+    ];
+
+    let mut turn: i64 = 0;
+
+    while turn < 4 {
+        board = draw(board);
+        let from: i64 = std::io::read_i64("from index: ", 52);
+        let to: i64 = std::io::read_i64("to index: ", 36);
+
+        board = move_piece(board, from, to);
+        board = cpu_move(board);
+        turn = turn + 1;
+    }
+
+    board = draw(board);
+    print("prototype done");
+}

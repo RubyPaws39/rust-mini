@@ -1,0 +1,12 @@
+/target/
+/target*/
+/rust_mini_verify_target/
+*.pdb
+*.exe
+examples/*_out.txt
+examples/*_save.txt
+examples/out.txt
+examples/library_demo_out.txt
+examples/rpg_demo_out.txt
+examples/adventure_out.txt
+examples/ping_pong_out.txt

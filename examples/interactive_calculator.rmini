@@ -1,0 +1,23 @@
+fn calculate(choice: i64, left: f64, right: f64) -> f64 {
+    return if choice == 1 {
+        left + right
+    } else if choice == 2 {
+        left - right
+    } else if choice == 3 {
+        left * right
+    } else {
+        left / right
+    };
+}
+
+fn main() {
+    print("Rust Mini Interactive Calculator");
+    print("1 add, 2 subtract, 3 multiply, 4 divide");
+
+    let choice: i64 = unwrap_or(parse_i64(input("operation: ")), 1);
+    let left: f64 = unwrap_or(parse_f64(input("left number: ")), 0.0);
+    let right: f64 = unwrap_or(parse_f64(input("right number: ")), 0.0);
+
+    print("result");
+    print(calculate(choice, left, right));
+}

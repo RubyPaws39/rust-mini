@@ -1,0 +1,48 @@
+trait Evaluate {
+    fn eval(self) -> f64;
+}
+
+enum Op {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+struct Calculation {
+    left: f64,
+    right: f64,
+    op: Op,
+}
+
+impl Evaluate for Calculation {
+    fn eval(self) -> f64 {
+        return match self.op {
+            Op::Add => self.left + self.right,
+            Op::Sub => self.left - self.right,
+            Op::Mul => self.left * self.right,
+            Op::Div => self.left / self.right,
+        };
+    }
+}
+
+fn percent(value: f64, amount: f64) -> f64 {
+    return value * amount / 100.0;
+}
+
+fn main() {
+    print("Rust Mini Calculator");
+
+    let jobs: Vec<Calculation> = vec![
+        Calculation { left: 12.5, right: 3.5, op: Op::Add },
+        Calculation { left: 20.0, right: 8.0, op: Op::Sub },
+        Calculation { left: 6.0, right: 7.0, op: Op::Mul },
+        Calculation { left: 84.0, right: 2.0, op: Op::Div },
+    ];
+
+    for job in jobs {
+        print(job.eval());
+    }
+
+    print(percent(250.0, 15.0));
+}

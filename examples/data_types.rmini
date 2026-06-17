@@ -1,0 +1,16 @@
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+fn main() {
+    let pair: (i64, bool) = (42, true);
+    print(pair.0);
+
+    let nums: [i64; 3] = [10, 20, 30];
+    print(nums[1]);
+    print(len(nums));
+
+    let p: Point = Point { x: 3, y: 4 };
+    print(p.x + p.y);
+}

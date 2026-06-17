@@ -1,0 +1,10 @@
+mod "game_math.rmini";
+
+fn main() {
+    let mut velocity: Vec2 = Vec2 { x: 2.0, y: 3.0 };
+    velocity.scale(3.0);
+
+    print(velocity.x);
+    print(velocity.y);
+    print(velocity.length_squared());
+}

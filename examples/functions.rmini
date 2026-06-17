@@ -1,0 +1,8 @@
+fn main() {
+    let result: i64 = add(2, 3);
+    print(result);
+}
+
+fn add(a: i64, b: i64) -> i64 {
+    return a + b;
+}

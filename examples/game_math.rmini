@@ -1,0 +1,15 @@
+struct Vec2 {
+    x: f64,
+    y: f64,
+}
+
+impl Vec2 {
+    fn scale(&mut self, amount: f64) {
+        self.x = self.x * amount;
+        self.y = self.y * amount;
+    }
+
+    fn length_squared(&self) -> f64 {
+        return self.x * self.x + self.y * self.y;
+    }
+}

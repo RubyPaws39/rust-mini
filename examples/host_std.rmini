@@ -1,0 +1,13 @@
+fn main() {
+    let message: String = concat("hello", " world");
+    print(message);
+    print(contains(message, "world"));
+
+    let argv: Vec<String> = args();
+    print(len(argv));
+
+    let label: String = env("RUST_MINI_TEST_ENV");
+    print(label);
+
+    print(clock_ms() > 0);
+}

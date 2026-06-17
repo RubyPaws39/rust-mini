@@ -1,0 +1,39 @@
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+impl Point {
+    fn sum(self) -> i64 {
+        return self.x + self.y;
+    }
+
+    fn shifted_x(self, dx: i64) -> i64 {
+        return self.x + dx;
+    }
+}
+
+enum Maybe {
+    Some(i64),
+    None,
+}
+
+impl Maybe {
+    fn unwrap_or(self, default: i64) -> i64 {
+        return match self {
+            Maybe::Some(value) => value,
+            Maybe::None => default,
+        };
+    }
+}
+
+fn main() {
+    let p: Point = Point { x: 2, y: 5 };
+    print(p.sum());
+
+    let q: Point = Point { x: 10, y: 20 };
+    print(q.shifted_x(3));
+
+    let n: Maybe = Maybe::None;
+    print(n.unwrap_or(99));
+}

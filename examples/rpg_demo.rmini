@@ -1,0 +1,46 @@
+enum Action {
+    Attack(i64),
+    Heal(i64),
+    Wait,
+}
+
+struct Fighter {
+    hp: i64,
+    power: i64,
+}
+
+impl Fighter {
+    fn score(self) -> i64 {
+        return self.hp + self.power;
+    }
+}
+
+fn apply(action: Action, hp: i64) -> i64 {
+    return match action {
+        Action::Attack(amount) => hp - amount,
+        Action::Heal(amount) => hp + amount,
+        Action::Wait => hp,
+    };
+}
+
+fn main() {
+    let mut hero: Fighter = Fighter { hp: 20, power: 5 };
+    let mut log: Vec<i64> = vec![hero.hp];
+
+    let turns: Vec<Action> = vec![
+        Action::Attack(4),
+        Action::Heal(2),
+        Action::Attack(7),
+        Action::Wait,
+    ];
+
+    for action in turns {
+        hero.hp = apply(action, hero.hp);
+        push(&mut log, hero.hp);
+    }
+
+    print(hero.hp);
+    print(hero.score());
+    print(len(log));
+    write_file("examples/rpg_demo_out.txt", "rpg demo complete");
+}

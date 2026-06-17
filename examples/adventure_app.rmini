@@ -1,0 +1,88 @@
+trait Score {
+    fn score(&self) -> i64;
+}
+
+enum ItemKind {
+    Weapon,
+    Potion,
+    Relic,
+}
+
+struct Item {
+    name: String,
+    power: i64,
+    kind: ItemKind,
+}
+
+struct Player {
+    name: String,
+    hp: i64,
+    gold: i64,
+}
+
+impl Score for Item {
+    fn score(&self) -> i64 {
+        return match self.kind {
+            ItemKind::Weapon => self.power,
+            ItemKind::Potion => self.power * 2,
+            ItemKind::Relic => self.power * 3,
+        };
+    }
+}
+
+impl Player {
+    fn power(&self) -> i64 {
+        return self.hp + self.gold;
+    }
+
+    fn heal(&mut self, amount: i64) {
+        self.hp = self.hp + amount;
+    }
+
+    fn damage(&mut self, amount: i64) {
+        self.hp = self.hp - amount;
+    }
+}
+
+fn main() {
+    print("Rust Mini Adventure");
+
+    let mut player: Player = Player { name: "Ruby", hp: 18, gold: 3 };
+    let inventory: Vec<Item> = vec![
+        Item { name: "Iron Sword", power: 5, kind: ItemKind::Weapon },
+        Item { name: "Health Potion", power: 4, kind: ItemKind::Potion },
+        Item { name: "Ancient Relic", power: 9, kind: ItemKind::Relic },
+    ];
+
+    print("Choose item: 1 sword, 2 potion, 3 relic");
+    let choice: i64 = unwrap_or(parse_i64(input("> ")), 1);
+
+    let item: Item = if choice == 1 {
+        inventory[0]
+    } else if choice == 2 {
+        inventory[1]
+    } else {
+        inventory[2]
+    };
+
+    print("You chose");
+    print(item.name);
+
+    let bonus: i64 = item.score();
+
+    if choice == 2 {
+        player.heal(bonus);
+    } else {
+        player.damage(4);
+        player.gold = player.gold + bonus;
+    }
+
+    print("final hp");
+    print(player.hp);
+    print("final gold");
+    print(player.gold);
+    print("final power");
+    print(player.power());
+
+    write_file("examples/adventure_save.txt", "adventure complete");
+}

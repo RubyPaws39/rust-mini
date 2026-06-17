@@ -1,0 +1,19 @@
+enum Maybe {
+    Some(i64),
+    None,
+}
+
+fn score(value: Maybe) -> i64 {
+    return match value {
+        Maybe::Some(x) => x + 1,
+        Maybe::None => 0,
+    };
+}
+
+fn main() {
+    let a: Maybe = Maybe::Some(41);
+    let b: Maybe = Maybe::None;
+
+    print(score(a));
+    print(score(b));
+}

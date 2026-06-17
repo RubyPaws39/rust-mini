@@ -1,0 +1,18 @@
+use std::io;
+use std::time;
+
+fn main() {
+    let fallback: i64 = io::read_i64("number: ", 7);
+    let mut xs: Vec<i64> = vec![1, 2];
+    xs.push(fallback);
+
+    println!("len {}", xs.len());
+    println!("last {}", unwrap_or(xs.pop(), 0));
+    println!("len {}", xs.len());
+
+    let mut name: String = "Ruby";
+    name.push_str(" Mini");
+    println!("{}", name.trim());
+
+    time::sleep_ms(0);
+}

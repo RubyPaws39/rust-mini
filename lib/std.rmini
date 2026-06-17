@@ -1,0 +1,55 @@
+pub fn std_print(text: String) {
+    print(text);
+}
+
+pub fn println(text: String) {
+    print(text);
+}
+
+pub fn std_input(prompt: String) -> String {
+    return input(prompt);
+}
+
+pub fn read_line(prompt: String) -> String {
+    return input(prompt);
+}
+
+pub fn read_key() -> String {
+    return std::io::read_key();
+}
+
+pub fn std_read_i64(prompt: String, default: i64) -> i64 {
+    return unwrap_or(parse_i64(input(prompt)), default);
+}
+
+pub fn read_i64(prompt: String, default: i64) -> i64 {
+    return unwrap_or(parse_i64(input(prompt)), default);
+}
+
+pub fn std_read_f64(prompt: String, default: f64) -> f64 {
+    return unwrap_or(parse_f64(input(prompt)), default);
+}
+
+pub fn read_f64(prompt: String, default: f64) -> f64 {
+    return unwrap_or(parse_f64(input(prompt)), default);
+}
+
+pub fn std_read_text(path: String) -> Result<String, String> {
+    return read_file(path);
+}
+
+pub fn read_to_string(path: String) -> Result<String, String> {
+    return read_file(path);
+}
+
+pub fn std_write_text(path: String, body: String) {
+    write_file(path, body);
+}
+
+pub fn write(path: String, body: String) {
+    write_file(path, body);
+}
+
+pub fn std_len(text: String) -> i64 {
+    return len(text);
+}

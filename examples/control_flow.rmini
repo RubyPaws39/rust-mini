@@ -1,0 +1,15 @@
+fn main() {
+    let mut x: i64 = 0;
+    let mut total: i64 = 0;
+
+    while x < 5 {
+        total = total + x;
+        x = x + 1;
+    }
+
+    if total == 10 {
+        print(total);
+    } else {
+        print(0);
+    }
+}

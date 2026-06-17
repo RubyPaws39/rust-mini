@@ -1,0 +1,9 @@
+fn main() {
+    let mut hp: i64 = 10;
+    damage(&mut hp);
+    print(hp);
+}
+
+fn damage(value: &mut i64) {
+    *value = *value - 1;
+}

@@ -1,0 +1,21 @@
+fn main() {
+    let good: Result<i64, String> = parse_i64("42");
+    let bad: Result<i64, String> = parse_i64("oops");
+
+    print(unwrap_or(good, 0));
+
+    let recovered: i64 = match bad {
+        Result::Ok(value) => value,
+        Result::Err(message) => {
+            print(message);
+            0
+        },
+    };
+    print(recovered);
+
+    let maybe: Option<i64> = Option::Some(7);
+    let empty: Option<i64> = Option::None;
+
+    print(unwrap_or(maybe, 0));
+    print(unwrap_or(empty, 99));
+}

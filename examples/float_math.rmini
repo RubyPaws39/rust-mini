@@ -1,0 +1,25 @@
+struct Vec2 {
+    x: f64,
+    y: f64,
+}
+
+impl Vec2 {
+    fn scale(&mut self, amount: f64) {
+        self.x = self.x * amount;
+        self.y = self.y * amount;
+    }
+
+    fn length_squared(&self) -> f64 {
+        return self.x * self.x + self.y * self.y;
+    }
+}
+
+fn main() {
+    let mut velocity: Vec2 = Vec2 { x: 1.5, y: 2.0 };
+    velocity.scale(2.0);
+
+    print(velocity.x);
+    print(velocity.y);
+    print(velocity.length_squared());
+    print(velocity.length_squared() > 20.0);
+}

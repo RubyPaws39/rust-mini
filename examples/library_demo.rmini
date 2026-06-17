@@ -1,0 +1,16 @@
+mod std;
+mod game;
+use std::*;
+use game::*;
+
+fn main() {
+    game::clear();
+    print(game::color("Imported libraries loaded", "bright_green"));
+
+    let n: i64 = std::io::read_i64("number: ", 7);
+    print(n + 1);
+
+    std::fs::write("examples/library_demo_out.txt", "library demo complete");
+    let text: String = unwrap_or(std::fs::read_to_string("examples/library_demo_out.txt"), "");
+    print(text);
+}

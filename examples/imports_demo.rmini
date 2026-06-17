@@ -1,0 +1,11 @@
+mod game_math;
+use game_math::*;
+
+fn main() {
+    let mut velocity: Vec2 = Vec2 { x: 1.5, y: 2.5 };
+    velocity.scale(4.0);
+
+    print(velocity.x);
+    print(velocity.y);
+    print(velocity.length_squared());
+}

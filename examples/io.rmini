@@ -1,0 +1,7 @@
+fn main() {
+    let text: String = unwrap_or(read_file("examples/message.txt"), "");
+    print(text);
+    print(len(text));
+
+    write_file("examples/io_out.txt", "created by Rust Mini");
+}

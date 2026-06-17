@@ -1,0 +1,5 @@
+fn main() {
+    let name: String = "Ruby";
+    let other = name;
+    print(name);
+}

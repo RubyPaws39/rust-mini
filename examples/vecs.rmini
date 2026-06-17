@@ -1,0 +1,17 @@
+fn sum(xs: Vec<i64>) -> i64 {
+    let mut total: i64 = 0;
+    for x in xs {
+        total = total + x;
+    }
+    return total;
+}
+
+fn main() {
+    let mut xs: Vec<i64> = vec![1, 2, 3];
+    push(&mut xs, 4);
+    xs[0] = 10;
+
+    print(len(xs));
+    print(xs[0]);
+    print(sum(xs));
+}
