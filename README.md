@@ -231,6 +231,7 @@ cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
 cargo run -- examples\chess_prototype.rmini
 cargo run -- examples\turtle_demo.rmini
+cargo run -- run examples\logo_square.rmini
 ```
 
 Pass script arguments after `--`:
@@ -316,7 +317,61 @@ Missing or incomplete:
 
 `read_key()` currently has Windows terminal support first. Other platforms return no key until platform input is added.
 
-## Turtle Graphics
+## Built-In Logo Turtle Graphics
+
+Rust Mini has a built-in `logo` turtle module. It records movement and saves SVG files.
+
+Example:
+
+```rust
+fn main() {
+    logo::pen_color("blue");
+    logo::forward(100);
+    logo::right(90);
+    logo::forward(100);
+    logo::right(90);
+    logo::forward(100);
+    logo::right(90);
+    logo::forward(100);
+    logo::save("square.svg");
+}
+```
+
+Run:
+
+```powershell
+cargo run -- run examples\logo_square.rmini
+```
+
+This creates:
+
+```text
+square.svg
+```
+
+Built-in Logo functions:
+
+```rust
+logo::forward(distance)
+logo::back(distance)
+logo::right(degrees)
+logo::left(degrees)
+logo::pen_up()
+logo::pen_down()
+logo::pen_color(color)
+logo::clear()
+logo::save(path)
+```
+
+Examples:
+
+```powershell
+cargo run -- run examples\logo_square.rmini
+cargo run -- run examples\logo_triangle.rmini
+cargo run -- run examples\logo_spiral.rmini
+```
+
+## Library Turtle Graphics
 
 Rust Mini includes a small LOGO-style turtle library in `lib/turtle.rmini`.
 

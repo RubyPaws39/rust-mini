@@ -3,6 +3,7 @@ use crate::error::{MiniError, Result};
 use crate::value::{RefValue, Value};
 use std::collections::{HashMap, VecDeque};
 use std::env;
+use std::f64::consts::PI;
 use std::fs;
 use std::io::{self, Write};
 use std::thread;
@@ -22,6 +23,38 @@ struct RuntimeVar {
     mutable: bool,
 }
 
+#[derive(Debug, Clone)]
+struct LogoLine {
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+    color: String,
+}
+
+#[derive(Debug, Clone)]
+struct LogoState {
+    x: f64,
+    y: f64,
+    heading_degrees: f64,
+    pen_down: bool,
+    color: String,
+    lines: Vec<LogoLine>,
+}
+
+impl Default for LogoState {
+    fn default() -> Self {
+        Self {
+            x: 250.0,
+            y: 250.0,
+            heading_degrees: 0.0,
+            pen_down: true,
+            color: "black".to_string(),
+            lines: Vec::new(),
+        }
+    }
+}
+
 enum Flow {
     Value(Value),
     Return(Value),
@@ -37,6 +70,7 @@ pub struct Interpreter<'a> {
     input: VecDeque<String>,
     rng_state: u64,
     live_output: bool,
+    logo: LogoState,
 }
 
 impl<'a> Interpreter<'a> {
@@ -74,6 +108,7 @@ impl<'a> Interpreter<'a> {
             input: input.into(),
             rng_state,
             live_output: false,
+            logo: LogoState::default(),
         }
     }
 
@@ -122,6 +157,9 @@ impl<'a> Interpreter<'a> {
                     "function `len` expects String, array, or vec",
                 )),
             };
+        }
+        if let Some(value) = self.call_logo_function(name, &args)? {
+            return Ok(value);
         }
         if name == "args" {
             if !args.is_empty() {
@@ -477,6 +515,78 @@ impl<'a> Interpreter<'a> {
             Flow::Break | Flow::Continue => {
                 Err(MiniError::runtime("loop control escaped function"))
             }
+        }
+    }
+
+    fn call_logo_function(&mut self, name: &str, args: &[Value]) -> Result<Option<Value>> {
+        match name {
+            "logo_forward" => {
+                let distance = expect_logo_i64(name, args, 1)? as f64;
+                self.logo_move(distance);
+                Ok(Some(Value::Unit))
+            }
+            "logo_back" => {
+                let distance = expect_logo_i64(name, args, 1)? as f64;
+                self.logo_move(-distance);
+                Ok(Some(Value::Unit))
+            }
+            "logo_right" => {
+                let degrees = expect_logo_i64(name, args, 1)? as f64;
+                self.logo.heading_degrees =
+                    normalize_logo_heading(self.logo.heading_degrees + degrees);
+                Ok(Some(Value::Unit))
+            }
+            "logo_left" => {
+                let degrees = expect_logo_i64(name, args, 1)? as f64;
+                self.logo.heading_degrees =
+                    normalize_logo_heading(self.logo.heading_degrees - degrees);
+                Ok(Some(Value::Unit))
+            }
+            "logo_pen_up" => {
+                expect_logo_arg_count(name, args, 0)?;
+                self.logo.pen_down = false;
+                Ok(Some(Value::Unit))
+            }
+            "logo_pen_down" => {
+                expect_logo_arg_count(name, args, 0)?;
+                self.logo.pen_down = true;
+                Ok(Some(Value::Unit))
+            }
+            "logo_pen_color" => {
+                let color = expect_logo_string(name, args, 1)?;
+                self.logo.color = color.to_string();
+                Ok(Some(Value::Unit))
+            }
+            "logo_clear" => {
+                expect_logo_arg_count(name, args, 0)?;
+                self.logo = LogoState::default();
+                Ok(Some(Value::Unit))
+            }
+            "logo_save" => {
+                let path = expect_logo_string(name, args, 1)?;
+                fs::write(path, logo_svg(&self.logo)).map_err(|e| {
+                    MiniError::runtime(format!("failed to write SVG `{}`: {}", path, e))
+                })?;
+                Ok(Some(Value::Unit))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn logo_move(&mut self, distance: f64) {
+        let start_x = self.logo.x;
+        let start_y = self.logo.y;
+        let radians = self.logo.heading_degrees * PI / 180.0;
+        self.logo.x += distance * radians.cos();
+        self.logo.y += distance * radians.sin();
+        if self.logo.pen_down {
+            self.logo.lines.push(LogoLine {
+                x1: start_x,
+                y1: start_y,
+                x2: self.logo.x,
+                y2: self.logo.y,
+                color: self.logo.color.clone(),
+            });
         }
     }
 
@@ -1384,6 +1494,58 @@ fn float_value(value: f64) -> Value {
     Value::Float(value.to_bits())
 }
 
+fn expect_logo_arg_count(name: &str, args: &[Value], expected: usize) -> Result<()> {
+    if args.len() != expected {
+        return Err(MiniError::runtime(format!(
+            "function `{}` expects {} argument{}",
+            name,
+            expected,
+            if expected == 1 { "" } else { "s" }
+        )));
+    }
+    Ok(())
+}
+
+fn expect_logo_i64<'a>(name: &str, args: &'a [Value], expected: usize) -> Result<i64> {
+    expect_logo_arg_count(name, args, expected)?;
+    match args.first() {
+        Some(Value::Int(value)) => Ok(*value),
+        _ => Err(MiniError::runtime(format!(
+            "function `{}` expects i64 distance/degrees",
+            name
+        ))),
+    }
+}
+
+fn expect_logo_string<'a>(name: &str, args: &'a [Value], expected: usize) -> Result<&'a str> {
+    expect_logo_arg_count(name, args, expected)?;
+    match args.first() {
+        Some(Value::String(value)) => Ok(value),
+        _ => Err(MiniError::runtime(format!(
+            "function `{}` expects String argument",
+            name
+        ))),
+    }
+}
+
+fn normalize_logo_heading(value: f64) -> f64 {
+    value.rem_euclid(360.0)
+}
+
+fn logo_svg(logo: &LogoState) -> String {
+    let mut svg = String::from(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"500\" height=\"500\" viewBox=\"0 0 500 500\">\n<rect width=\"100%\" height=\"100%\" fill=\"white\" />\n",
+    );
+    for line in &logo.lines {
+        svg.push_str(&format!(
+            "<line x1=\"{:.2}\" y1=\"{:.2}\" x2=\"{:.2}\" y2=\"{:.2}\" stroke=\"{}\" stroke-width=\"3\" stroke-linecap=\"round\" />\n",
+            line.x1, line.y1, line.x2, line.y2, line.color
+        ));
+    }
+    svg.push_str("</svg>\n");
+    svg
+}
+
 fn format_macro_values(args: &[Value]) -> Result<String> {
     let Some(Value::String(template)) = args.first() else {
         return Err(MiniError::runtime(
@@ -1457,6 +1619,15 @@ fn builtin_alias(name: &str) -> &str {
         "game::rand_i64" => "rand_i64",
         "game::read_key" => "read_key",
         "game::sleep_ms" => "sleep_ms",
+        "logo::forward" | "logo_forward" => "logo_forward",
+        "logo::back" | "logo_back" => "logo_back",
+        "logo::right" | "logo_right" => "logo_right",
+        "logo::left" | "logo_left" => "logo_left",
+        "logo::pen_up" | "logo_pen_up" => "logo_pen_up",
+        "logo::pen_down" | "logo_pen_down" => "logo_pen_down",
+        "logo::pen_color" | "logo_pen_color" => "logo_pen_color",
+        "logo::clear" | "logo_clear" => "logo_clear",
+        "logo::save" | "logo_save" => "logo_save",
         other => other,
     }
 }

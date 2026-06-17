@@ -553,6 +553,40 @@ impl<'a> TypeChecker<'a> {
             }
             Expression::Call { name, args, span } => {
                 let name = builtin_alias(name);
+                if matches!(
+                    name,
+                    "logo_forward" | "logo_back" | "logo_right" | "logo_left"
+                ) {
+                    if args.len() != 1 {
+                        return Err(MiniError::type_error(
+                            format!("function `{}` expects 1 argument", name),
+                            Some(*span),
+                        ));
+                    }
+                    let arg_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    self.expect_type(&Type::I64, &arg_ty, Some(args[0].span()))?;
+                    return Ok(Type::Unit);
+                }
+                if matches!(name, "logo_pen_up" | "logo_pen_down" | "logo_clear") {
+                    if !args.is_empty() {
+                        return Err(MiniError::type_error(
+                            format!("function `{}` expects 0 arguments", name),
+                            Some(*span),
+                        ));
+                    }
+                    return Ok(Type::Unit);
+                }
+                if matches!(name, "logo_pen_color" | "logo_save") {
+                    if args.len() != 1 {
+                        return Err(MiniError::type_error(
+                            format!("function `{}` expects 1 argument", name),
+                            Some(*span),
+                        ));
+                    }
+                    let arg_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    self.expect_type(&Type::String, &arg_ty, Some(args[0].span()))?;
+                    return Ok(Type::Unit);
+                }
                 if name == "args" {
                     if !args.is_empty() {
                         return Err(MiniError::type_error(
@@ -1466,6 +1500,15 @@ fn builtin_alias(name: &str) -> &str {
         "game::rand_i64" => "rand_i64",
         "game::read_key" => "read_key",
         "game::sleep_ms" => "sleep_ms",
+        "logo::forward" | "logo_forward" => "logo_forward",
+        "logo::back" | "logo_back" => "logo_back",
+        "logo::right" | "logo_right" => "logo_right",
+        "logo::left" | "logo_left" => "logo_left",
+        "logo::pen_up" | "logo_pen_up" => "logo_pen_up",
+        "logo::pen_down" | "logo_pen_down" => "logo_pen_down",
+        "logo::pen_color" | "logo_pen_color" => "logo_pen_color",
+        "logo::clear" | "logo_clear" => "logo_clear",
+        "logo::save" | "logo_save" => "logo_save",
         other => other,
     }
 }

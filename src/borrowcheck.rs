@@ -415,6 +415,29 @@ impl<'a> BorrowChecker<'a> {
             }
             Expression::Call { name, args, span } => {
                 let name = builtin_alias(name);
+                if matches!(
+                    name,
+                    "logo_forward"
+                        | "logo_back"
+                        | "logo_right"
+                        | "logo_left"
+                        | "logo_pen_up"
+                        | "logo_pen_down"
+                        | "logo_pen_color"
+                        | "logo_clear"
+                        | "logo_save"
+                ) {
+                    for arg in args {
+                        let effect = self.check_expr(arg, env)?;
+                        if let Some(loan) = effect.loan {
+                            self.release_loan(&loan, env);
+                        }
+                    }
+                    return Ok(Effect {
+                        ty: Type::Unit,
+                        loan: None,
+                    });
+                }
                 if name == "len" {
                     if let Some(Expression::Var(var, arg_span)) = args.first() {
                         let state = lookup(env, var).ok_or_else(|| {
@@ -1136,6 +1159,15 @@ fn builtin_alias(name: &str) -> &str {
         "game::rand_i64" => "rand_i64",
         "game::read_key" => "read_key",
         "game::sleep_ms" => "sleep_ms",
+        "logo::forward" | "logo_forward" => "logo_forward",
+        "logo::back" | "logo_back" => "logo_back",
+        "logo::right" | "logo_right" => "logo_right",
+        "logo::left" | "logo_left" => "logo_left",
+        "logo::pen_up" | "logo_pen_up" => "logo_pen_up",
+        "logo::pen_down" | "logo_pen_down" => "logo_pen_down",
+        "logo::pen_color" | "logo_pen_color" => "logo_pen_color",
+        "logo::clear" | "logo_clear" => "logo_clear",
+        "logo::save" | "logo_save" => "logo_save",
         other => other,
     }
 }

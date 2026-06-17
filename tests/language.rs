@@ -33,6 +33,12 @@ fn check_error(source: &str) -> String {
         .to_string()
 }
 
+fn runtime_error_without_check(source: &str) -> String {
+    let tokens = Lexer::new(source).lex().unwrap();
+    let program = Parser::new(tokens).parse_program().unwrap();
+    Interpreter::new(&program).run().unwrap_err().to_string()
+}
+
 #[test]
 fn runs_control_flow() {
     let source = include_str!("../examples/control_flow.rmini");
@@ -357,6 +363,97 @@ fn runs_turtle_demo() {
 }
 
 #[test]
+fn logo_forward_draws_line_and_save_writes_svg() {
+    let _ = std::fs::remove_file("examples/logo_test_line.svg");
+    let source = r#"
+fn main() {
+    logo::clear();
+    logo::forward(100);
+    logo::save("examples/logo_test_line.svg");
+}
+"#;
+    assert_eq!(parse_check_run(source), Vec::<String>::new());
+    let svg = std::fs::read_to_string("examples/logo_test_line.svg").unwrap();
+    assert!(svg.contains("<svg"));
+    assert!(svg.contains("<line"));
+    assert!(svg.contains("x1=\"250.00\""));
+    assert!(svg.contains("x2=\"350.00\""));
+    std::fs::remove_file("examples/logo_test_line.svg").unwrap();
+}
+
+#[test]
+fn logo_right_and_left_change_direction() {
+    let _ = std::fs::remove_file("examples/logo_test_turns.svg");
+    let source = r#"
+fn main() {
+    logo::clear();
+    logo::right(90);
+    logo::forward(50);
+    logo::left(90);
+    logo::forward(50);
+    logo::save("examples/logo_test_turns.svg");
+}
+"#;
+    assert_eq!(parse_check_run(source), Vec::<String>::new());
+    let svg = std::fs::read_to_string("examples/logo_test_turns.svg").unwrap();
+    assert!(svg.contains("y2=\"300.00\""));
+    assert!(svg.contains("x2=\"300.00\""));
+    std::fs::remove_file("examples/logo_test_turns.svg").unwrap();
+}
+
+#[test]
+fn logo_pen_up_prevents_line_creation() {
+    let _ = std::fs::remove_file("examples/logo_test_pen.svg");
+    let source = r#"
+fn main() {
+    logo::clear();
+    logo::pen_up();
+    logo::forward(100);
+    logo::pen_down();
+    logo::forward(50);
+    logo::save("examples/logo_test_pen.svg");
+}
+"#;
+    assert_eq!(parse_check_run(source), Vec::<String>::new());
+    let svg = std::fs::read_to_string("examples/logo_test_pen.svg").unwrap();
+    assert_eq!(svg.matches("<line").count(), 1);
+    assert!(svg.contains("x1=\"350.00\""));
+    assert!(svg.contains("x2=\"400.00\""));
+    std::fs::remove_file("examples/logo_test_pen.svg").unwrap();
+}
+
+#[test]
+fn logo_pen_color_changes_future_lines() {
+    let _ = std::fs::remove_file("examples/logo_test_color.svg");
+    let source = r#"
+fn main() {
+    logo::clear();
+    logo::pen_color("red");
+    logo::forward(30);
+    logo::pen_color("blue");
+    logo::forward(30);
+    logo::save("examples/logo_test_color.svg");
+}
+"#;
+    assert_eq!(parse_check_run(source), Vec::<String>::new());
+    let svg = std::fs::read_to_string("examples/logo_test_color.svg").unwrap();
+    assert!(svg.contains("stroke=\"red\""));
+    assert!(svg.contains("stroke=\"blue\""));
+    std::fs::remove_file("examples/logo_test_color.svg").unwrap();
+}
+
+#[test]
+fn logo_invalid_runtime_argument_is_friendly() {
+    let source = r#"
+fn main() {
+    logo::forward("far");
+}
+"#;
+    let err = runtime_error_without_check(source);
+    assert!(err.contains("function `logo_forward` expects i64 distance/degrees"));
+}
+
+#[test]
 fn runs_rpg_demo() {
     let _ = std::fs::remove_file("examples/rpg_demo_out.txt");
     let source = include_str!("../examples/rpg_demo.rmini");
@@ -401,6 +498,9 @@ fn checks_all_success_examples() {
         "examples/result_demo.rmini",
         "examples/library_demo.rmini",
         "examples/turtle_demo.rmini",
+        "examples/logo_square.rmini",
+        "examples/logo_triangle.rmini",
+        "examples/logo_spiral.rmini",
         "examples/chess_prototype.rmini",
         "examples/rpg_demo.rmini",
     ] {

@@ -40,7 +40,9 @@ fn run() -> Result<(), String> {
         return Ok(());
     }
 
-    let (mode, path) = if cli_args.len() == 2 && cli_args[0].starts_with("--") {
+    let (mode, path) = if cli_args.len() == 2 && cli_args[0] == "run" {
+        ("--run", cli_args[1].as_str())
+    } else if cli_args.len() == 2 && cli_args[0].starts_with("--") {
         (cli_args[0].as_str(), cli_args[1].as_str())
     } else {
         ("--run", cli_args[0].as_str())
@@ -96,5 +98,6 @@ fn run() -> Result<(), String> {
 fn print_usage() {
     eprintln!("rust_mini {}", env!("CARGO_PKG_VERSION"));
     eprintln!("usage: rust_mini [--tokens|--ast|--check|--version|--help] <file.rmini>");
+    eprintln!("       rust_mini run <file.rmini>");
     eprintln!("       rust_mini <file.rmini> -- [program args...]");
 }

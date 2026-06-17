@@ -1,0 +1,15 @@
+fn main() {
+    logo::clear();
+    logo::pen_color("green");
+
+    let mut distance: i64 = 20;
+
+    for step in 0..12 {
+        logo::forward(distance);
+        logo::right(90);
+        distance = distance + 10;
+    }
+
+    logo::save("spiral.svg");
+    println!("wrote spiral.svg");
+}

@@ -1,0 +1,12 @@
+fn main() {
+    logo::clear();
+    logo::pen_color("purple");
+
+    for side in 0..3 {
+        logo::forward(120);
+        logo::right(120);
+    }
+
+    logo::save("triangle.svg");
+    println!("wrote triangle.svg");
+}

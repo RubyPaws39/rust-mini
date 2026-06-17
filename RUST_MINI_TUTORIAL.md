@@ -612,9 +612,14 @@ cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
 cargo run -- examples\chess_prototype.rmini
 cargo run -- examples\turtle_demo.rmini
+cargo run -- run examples\logo_square.rmini
+cargo run -- run examples\logo_triangle.rmini
+cargo run -- run examples\logo_spiral.rmini
 cargo run -- examples\adventure_app.rmini
 cargo run -- examples\furry_love_game.rmini
 ```
+
+Logo examples create SVG files such as `square.svg`.
 
 Chess prototype uses board indexes `0..63`. It is not full chess yet.
 

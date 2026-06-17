@@ -1,0 +1,12 @@
+fn main() {
+    logo::clear();
+    logo::pen_color("blue");
+
+    for side in 0..4 {
+        logo::forward(100);
+        logo::right(90);
+    }
+
+    logo::save("square.svg");
+    println!("wrote square.svg");
+}
