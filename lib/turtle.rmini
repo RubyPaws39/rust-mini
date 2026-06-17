@@ -1,0 +1,112 @@
+pub struct Turtle {
+    x: i64,
+    y: i64,
+    heading: i64,
+    pen_down: bool,
+    color: String,
+    body: String,
+}
+
+pub fn turtle_new(x: i64, y: i64) -> Turtle {
+    return Turtle {
+        x: x,
+        y: y,
+        heading: 0,
+        pen_down: true,
+        color: "black",
+        body: "",
+    };
+}
+
+pub fn turtle_normalize_heading(value: i64) -> i64 {
+    let mut heading: i64 = value;
+
+    while heading < 0 {
+        heading = heading + 360;
+    }
+
+    while heading >= 360 {
+        heading = heading - 360;
+    }
+
+    return heading;
+}
+
+pub fn turtle_right(turtle: Turtle, degrees: i64) -> Turtle {
+    let mut next: Turtle = turtle;
+    next.heading = turtle_normalize_heading(next.heading + degrees);
+    return next;
+}
+
+pub fn turtle_left(turtle: Turtle, degrees: i64) -> Turtle {
+    let mut next: Turtle = turtle;
+    next.heading = turtle_normalize_heading(next.heading - degrees);
+    return next;
+}
+
+pub fn turtle_pen_up(turtle: Turtle) -> Turtle {
+    let mut next: Turtle = turtle;
+    next.pen_down = false;
+    return next;
+}
+
+pub fn turtle_pen_down(turtle: Turtle) -> Turtle {
+    let mut next: Turtle = turtle;
+    next.pen_down = true;
+    return next;
+}
+
+pub fn turtle_color(turtle: Turtle, color: String) -> Turtle {
+    let mut next: Turtle = turtle;
+    next.color = color;
+    return next;
+}
+
+pub fn turtle_forward(turtle: Turtle, distance: i64) -> Turtle {
+    let mut next: Turtle = turtle;
+    let old_x: i64 = next.x;
+    let old_y: i64 = next.y;
+
+    if next.heading == 0 {
+        next.x = next.x + distance;
+    } else if next.heading == 90 {
+        next.y = next.y + distance;
+    } else if next.heading == 180 {
+        next.x = next.x - distance;
+    } else if next.heading == 270 {
+        next.y = next.y - distance;
+    }
+
+    if next.pen_down {
+        let line: String = format!(
+            "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"3\" stroke-linecap=\"round\" />\n",
+            old_x,
+            old_y,
+            next.x,
+            next.y,
+            next.color
+        );
+        next.body = concat(next.body, line);
+    }
+
+    return next;
+}
+
+pub fn turtle_back(turtle: Turtle, distance: i64) -> Turtle {
+    return turtle_forward(turtle, 0 - distance);
+}
+
+pub fn turtle_svg(turtle: Turtle, width: i64, height: i64) -> String {
+    return format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\">\n<rect width=\"100%\" height=\"100%\" fill=\"white\" />\n{}</svg>\n",
+        width,
+        height,
+        width,
+        height,
+        turtle.body
+    );
+}
+
+pub fn turtle_save(turtle: Turtle, path: String, width: i64, height: i64) {
+    write_file(path, turtle_svg(turtle, width, height));
+}

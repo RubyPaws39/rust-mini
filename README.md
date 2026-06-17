@@ -230,6 +230,7 @@ cargo run -- examples\interactive_calculator.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
 cargo run -- examples\chess_prototype.rmini
+cargo run -- examples\turtle_demo.rmini
 ```
 
 Pass script arguments after `--`:
@@ -314,6 +315,41 @@ Missing or incomplete:
 - GUI/window backend
 
 `read_key()` currently has Windows terminal support first. Other platforms return no key until platform input is added.
+
+## Turtle Graphics
+
+Rust Mini includes a small LOGO-style turtle library in `lib/turtle.rmini`.
+
+It writes SVG files:
+
+```rust
+mod turtle;
+use turtle::*;
+
+fn main() {
+    let mut t: Turtle = turtle_new(80, 80);
+    t = turtle_color(t, "hotpink");
+
+    for i in 0..4 {
+        t = turtle_forward(t, 120);
+        t = turtle_right(t, 90);
+    }
+
+    turtle_save(t, "examples/turtle_demo.svg", 260, 260);
+}
+```
+
+Run:
+
+```powershell
+cargo run -- examples\turtle_demo.rmini
+```
+
+Then open:
+
+```text
+examples\turtle_demo.svg
+```
 
 ## Contributing
 

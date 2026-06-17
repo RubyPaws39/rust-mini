@@ -5,6 +5,7 @@
 *.exe
 examples/*_out.txt
 examples/*_save.txt
+examples/*.svg
 examples/out.txt
 examples/library_demo_out.txt
 examples/rpg_demo_out.txt

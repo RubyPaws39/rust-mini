@@ -611,6 +611,7 @@ cargo run -- examples\interactive_calculator.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
 cargo run -- examples\chess_prototype.rmini
+cargo run -- examples\turtle_demo.rmini
 cargo run -- examples\adventure_app.rmini
 cargo run -- examples\furry_love_game.rmini
 ```

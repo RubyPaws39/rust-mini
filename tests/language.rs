@@ -340,6 +340,23 @@ fn runs_imported_library_demo() {
 }
 
 #[test]
+fn runs_turtle_demo() {
+    let _ = std::fs::remove_file("examples/turtle_demo.svg");
+    let program = parse_file_with_modules("examples/turtle_demo.rmini").unwrap();
+    TypeChecker::new(&program).check().unwrap();
+    BorrowChecker::new(&program).check().unwrap();
+    assert_eq!(
+        Interpreter::new(&program).run().unwrap(),
+        vec!["wrote examples/turtle_demo.svg"]
+    );
+    let svg = std::fs::read_to_string("examples/turtle_demo.svg").unwrap();
+    assert!(svg.contains("<svg"));
+    assert!(svg.contains("hotpink"));
+    assert!(svg.contains("deepskyblue"));
+    std::fs::remove_file("examples/turtle_demo.svg").unwrap();
+}
+
+#[test]
 fn runs_rpg_demo() {
     let _ = std::fs::remove_file("examples/rpg_demo_out.txt");
     let source = include_str!("../examples/rpg_demo.rmini");
@@ -383,12 +400,14 @@ fn checks_all_success_examples() {
         "examples/host_std.rmini",
         "examples/result_demo.rmini",
         "examples/library_demo.rmini",
+        "examples/turtle_demo.rmini",
         "examples/chess_prototype.rmini",
         "examples/rpg_demo.rmini",
     ] {
         let program = if path == "examples/modules_demo.rmini"
             || path == "examples/imports_demo.rmini"
             || path == "examples/library_demo.rmini"
+            || path == "examples/turtle_demo.rmini"
             || path == "examples/chess_prototype.rmini"
             || path == "examples/animated_pong.rmini"
         {

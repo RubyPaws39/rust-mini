@@ -1,0 +1,33 @@
+mod turtle;
+use turtle::*;
+
+fn square(turtle: Turtle, size: i64) -> Turtle {
+    let mut t: Turtle = turtle;
+
+    for i in 0..4 {
+        t = turtle_forward(t, size);
+        t = turtle_right(t, 90);
+    }
+
+    return t;
+}
+
+fn main() {
+    let mut t: Turtle = turtle_new(80, 80);
+
+    t = turtle_color(t, "hotpink");
+    t = square(t, 120);
+
+    t = turtle_pen_up(t);
+    t = turtle_forward(t, 30);
+    t = turtle_right(t, 90);
+    t = turtle_forward(t, 30);
+    t = turtle_left(t, 90);
+    t = turtle_pen_down(t);
+
+    t = turtle_color(t, "deepskyblue");
+    t = square(t, 60);
+
+    turtle_save(t, "examples/turtle_demo.svg", 260, 260);
+    println!("wrote examples/turtle_demo.svg");
+}
