@@ -880,6 +880,36 @@ impl<'a> TypeChecker<'a> {
                     self.expect_type(&Type::String, &recv_ty, Some(receiver.span()))?;
                     return Ok(Type::String);
                 }
+                if matches!(name.as_str(), "to_lowercase" | "to_uppercase") && args.is_empty() {
+                    self.expect_type(&Type::String, &recv_ty, Some(receiver.span()))?;
+                    return Ok(Type::String);
+                }
+                if matches!(name.as_str(), "contains" | "starts_with" | "ends_with") {
+                    if args.len() != 1 {
+                        return Err(MiniError::type_error(
+                            format!("method `{}` expects 1 argument", name),
+                            Some(*span),
+                        ));
+                    }
+                    self.expect_type(&Type::String, &recv_ty, Some(receiver.span()))?;
+                    let arg_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    self.expect_type(&Type::String, &arg_ty, Some(args[0].span()))?;
+                    return Ok(Type::Bool);
+                }
+                if name == "replace" {
+                    if args.len() != 2 {
+                        return Err(MiniError::type_error(
+                            "method `replace` expects 2 arguments",
+                            Some(*span),
+                        ));
+                    }
+                    self.expect_type(&Type::String, &recv_ty, Some(receiver.span()))?;
+                    let from_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    let to_ty = self.check_expr(&args[1], env, loop_depth)?;
+                    self.expect_type(&Type::String, &from_ty, Some(args[0].span()))?;
+                    self.expect_type(&Type::String, &to_ty, Some(args[1].span()))?;
+                    return Ok(Type::String);
+                }
                 if name == "push_str" {
                     if args.len() != 1 {
                         return Err(MiniError::type_error(

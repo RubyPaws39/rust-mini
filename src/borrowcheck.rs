@@ -637,7 +637,18 @@ impl<'a> BorrowChecker<'a> {
                 let recv_ty = self.peek_expr_type(receiver, env)?;
                 if matches!(
                     name.as_str(),
-                    "len" | "trim" | "is_some" | "is_none" | "is_ok" | "is_err"
+                    "len"
+                        | "trim"
+                        | "is_some"
+                        | "is_none"
+                        | "is_ok"
+                        | "is_err"
+                        | "to_lowercase"
+                        | "to_uppercase"
+                        | "contains"
+                        | "starts_with"
+                        | "ends_with"
+                        | "replace"
                 ) || (name == "unwrap_or"
                     && matches!(recv_ty, Type::Option(_) | Type::Result(_, _)))
                 {
@@ -669,7 +680,8 @@ impl<'a> BorrowChecker<'a> {
                     return Ok(Effect {
                         ty: match name.as_str() {
                             "len" => Type::I64,
-                            "trim" => Type::String,
+                            "trim" | "to_lowercase" | "to_uppercase" | "replace" => Type::String,
+                            "contains" | "starts_with" | "ends_with" => Type::Bool,
                             "is_some" | "is_none" | "is_ok" | "is_err" => Type::Bool,
                             "unwrap_or" => match recv_ty {
                                 Type::Option(inner) | Type::Result(inner, _) => *inner,

@@ -683,6 +683,65 @@ impl<'a> Interpreter<'a> {
                         _ => Err(MiniError::runtime("method `trim` expects String")),
                     };
                 }
+                if name == "to_lowercase" && args.is_empty() {
+                    return match self.eval_expr(receiver)? {
+                        Value::String(text) => Ok(Value::String(text.to_lowercase())),
+                        _ => Err(MiniError::runtime("method `to_lowercase` expects String")),
+                    };
+                }
+                if name == "to_uppercase" && args.is_empty() {
+                    return match self.eval_expr(receiver)? {
+                        Value::String(text) => Ok(Value::String(text.to_uppercase())),
+                        _ => Err(MiniError::runtime("method `to_uppercase` expects String")),
+                    };
+                }
+                if matches!(name.as_str(), "contains" | "starts_with" | "ends_with") {
+                    if args.len() != 1 {
+                        return Err(MiniError::runtime(format!(
+                            "method `{}` expects 1 argument",
+                            name
+                        )));
+                    }
+                    let Value::String(text) = self.eval_expr(receiver)? else {
+                        return Err(MiniError::runtime(format!(
+                            "method `{}` expects String receiver",
+                            name
+                        )));
+                    };
+                    let Value::String(needle) = self.eval_expr(&args[0])? else {
+                        return Err(MiniError::runtime(format!(
+                            "method `{}` expects String argument",
+                            name
+                        )));
+                    };
+                    return Ok(Value::Bool(match name.as_str() {
+                        "contains" => text.contains(&needle),
+                        "starts_with" => text.starts_with(&needle),
+                        "ends_with" => text.ends_with(&needle),
+                        _ => unreachable!(),
+                    }));
+                }
+                if name == "replace" {
+                    if args.len() != 2 {
+                        return Err(MiniError::runtime("method `replace` expects 2 arguments"));
+                    }
+                    let Value::String(text) = self.eval_expr(receiver)? else {
+                        return Err(MiniError::runtime(
+                            "method `replace` expects String receiver",
+                        ));
+                    };
+                    let Value::String(from) = self.eval_expr(&args[0])? else {
+                        return Err(MiniError::runtime(
+                            "method `replace` expects String pattern",
+                        ));
+                    };
+                    let Value::String(to) = self.eval_expr(&args[1])? else {
+                        return Err(MiniError::runtime(
+                            "method `replace` expects String replacement",
+                        ));
+                    };
+                    return Ok(Value::String(text.replace(&from, &to)));
+                }
                 if name == "push" {
                     if args.len() != 1 {
                         return Err(MiniError::runtime("method `push` expects 1 argument"));

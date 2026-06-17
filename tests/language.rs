@@ -249,6 +249,22 @@ fn runs_ranges_and_result_methods() {
 }
 
 #[test]
+fn runs_string_methods() {
+    let source = include_str!("../examples/string_methods.rmini");
+    assert_eq!(
+        parse_check_run(source),
+        vec![
+            "Rust Mini",
+            "RUST MINI",
+            "ruby mini",
+            "true",
+            "true",
+            "true"
+        ]
+    );
+}
+
+#[test]
 fn runs_file_io_and_string_len() {
     let source = include_str!("../examples/io.rmini");
     assert_eq!(
@@ -361,6 +377,7 @@ fn checks_all_success_examples() {
         "examples/format_and_string_loop.rmini",
         "examples/std_io_and_methods.rmini",
         "examples/range_and_result_methods.rmini",
+        "examples/string_methods.rmini",
         "examples/vecs.rmini",
         "examples/io.rmini",
         "examples/host_std.rmini",

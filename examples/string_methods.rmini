@@ -1,0 +1,14 @@
+fn main() {
+    let text: String = "  Rust Mini  ";
+    let clean: String = text.trim();
+    let loud: String = clean.to_uppercase();
+    let soft: String = loud.to_lowercase();
+    let renamed: String = soft.replace("rust", "ruby");
+
+    println!("{}", clean);
+    println!("{}", loud);
+    println!("{}", renamed);
+    println!("{}", renamed.contains("mini"));
+    println!("{}", renamed.starts_with("ruby"));
+    println!("{}", renamed.ends_with("mini"));
+}

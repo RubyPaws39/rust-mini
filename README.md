@@ -162,6 +162,12 @@ xs.pop();
 
 text.trim();
 text.push_str("!");
+text.to_lowercase();
+text.to_uppercase();
+text.replace("old", "new");
+text.contains("needle");
+text.starts_with("prefix");
+text.ends_with("suffix");
 
 value.is_some();
 value.is_none();
@@ -219,6 +225,7 @@ cargo run -- examples\traits_demo.rmini
 cargo run -- examples\format_and_string_loop.rmini
 cargo run -- examples\std_io_and_methods.rmini
 cargo run -- examples\range_and_result_methods.rmini
+cargo run -- examples\string_methods.rmini
 cargo run -- examples\interactive_calculator.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini

@@ -239,6 +239,12 @@ Useful string helpers:
 text.len()
 text.trim()
 text.push_str("more")
+text.to_lowercase()
+text.to_uppercase()
+text.replace("old", "new")
+text.contains("needle")
+text.starts_with("prefix")
+text.ends_with("suffix")
 contains(text, "needle")
 concat("hello", " world")
 ```
