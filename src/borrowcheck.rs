@@ -421,11 +421,19 @@ impl<'a> BorrowChecker<'a> {
                         | "logo_back"
                         | "logo_right"
                         | "logo_left"
+                        | "logo_set_position"
+                        | "logo_home"
+                        | "logo_heading"
+                        | "logo_set_heading"
+                        | "logo_circle"
+                        | "logo_width"
+                        | "logo_background"
                         | "logo_pen_up"
                         | "logo_pen_down"
                         | "logo_pen_color"
                         | "logo_clear"
                         | "logo_save"
+                        | "logo_save_with_size"
                 ) {
                     for arg in args {
                         let effect = self.check_expr(arg, env)?;
@@ -1163,11 +1171,19 @@ fn builtin_alias(name: &str) -> &str {
         "logo::back" | "logo_back" => "logo_back",
         "logo::right" | "logo_right" => "logo_right",
         "logo::left" | "logo_left" => "logo_left",
+        "logo::set_position" | "logo_set_position" => "logo_set_position",
+        "logo::home" | "logo_home" => "logo_home",
+        "logo::heading" | "logo_heading" => "logo_heading",
+        "logo::set_heading" | "logo_set_heading" => "logo_set_heading",
+        "logo::circle" | "logo_circle" => "logo_circle",
+        "logo::width" | "logo_width" => "logo_width",
+        "logo::background" | "logo_background" => "logo_background",
         "logo::pen_up" | "logo_pen_up" => "logo_pen_up",
         "logo::pen_down" | "logo_pen_down" => "logo_pen_down",
         "logo::pen_color" | "logo_pen_color" => "logo_pen_color",
         "logo::clear" | "logo_clear" => "logo_clear",
         "logo::save" | "logo_save" => "logo_save",
+        "logo::save_with_size" | "logo_save_with_size" => "logo_save_with_size",
         other => other,
     }
 }

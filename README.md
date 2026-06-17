@@ -356,11 +356,19 @@ logo::forward(distance)
 logo::back(distance)
 logo::right(degrees)
 logo::left(degrees)
+logo::set_position(x, y)
+logo::home()
+logo::heading()
+logo::set_heading(degrees)
+logo::circle(radius)
+logo::width(pixels)
+logo::background(color)
 logo::pen_up()
 logo::pen_down()
 logo::pen_color(color)
 logo::clear()
 logo::save(path)
+logo::save_with_size(path, width, height)
 ```
 
 Examples:
@@ -369,6 +377,7 @@ Examples:
 cargo run -- run examples\logo_square.rmini
 cargo run -- run examples\logo_triangle.rmini
 cargo run -- run examples\logo_spiral.rmini
+cargo run -- run examples\logo_flower.rmini
 ```
 
 ## Library Turtle Graphics

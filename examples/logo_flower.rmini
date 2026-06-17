@@ -1,0 +1,23 @@
+fn main() {
+    logo::clear();
+    logo::background("lavenderblush");
+    logo::width(4);
+    logo::pen_color("deeppink");
+
+    for p in 0..12 {
+        logo::pen_up();
+        logo::home();
+        logo::set_heading(p * 30);
+        logo::forward(80);
+        logo::pen_down();
+        logo::circle(35);
+    }
+
+    logo::home();
+    logo::pen_color("gold");
+    logo::width(8);
+    logo::circle(25);
+
+    logo::save_with_size("flower.svg", 500, 500);
+    println!("wrote flower.svg");
+}

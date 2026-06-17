@@ -30,6 +30,16 @@ struct LogoLine {
     x2: f64,
     y2: f64,
     color: String,
+    width: i64,
+}
+
+#[derive(Debug, Clone)]
+struct LogoCircle {
+    x: f64,
+    y: f64,
+    radius: f64,
+    color: String,
+    width: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -39,7 +49,10 @@ struct LogoState {
     heading_degrees: f64,
     pen_down: bool,
     color: String,
+    width: i64,
+    background: String,
     lines: Vec<LogoLine>,
+    circles: Vec<LogoCircle>,
 }
 
 impl Default for LogoState {
@@ -50,7 +63,10 @@ impl Default for LogoState {
             heading_degrees: 0.0,
             pen_down: true,
             color: "black".to_string(),
+            width: 3,
+            background: "white".to_string(),
             lines: Vec::new(),
+            circles: Vec::new(),
         }
     }
 }
@@ -542,6 +558,56 @@ impl<'a> Interpreter<'a> {
                     normalize_logo_heading(self.logo.heading_degrees - degrees);
                 Ok(Some(Value::Unit))
             }
+            "logo_set_position" => {
+                expect_logo_arg_count(name, args, 2)?;
+                let x = expect_logo_i64_at(name, args, 0)? as f64;
+                let y = expect_logo_i64_at(name, args, 1)? as f64;
+                self.logo_move_to(x, y);
+                Ok(Some(Value::Unit))
+            }
+            "logo_home" => {
+                expect_logo_arg_count(name, args, 0)?;
+                self.logo_move_to(250.0, 250.0);
+                self.logo.heading_degrees = 0.0;
+                Ok(Some(Value::Unit))
+            }
+            "logo_heading" => {
+                expect_logo_arg_count(name, args, 0)?;
+                Ok(Some(Value::Int(self.logo.heading_degrees.round() as i64)))
+            }
+            "logo_set_heading" => {
+                let degrees = expect_logo_i64(name, args, 1)? as f64;
+                self.logo.heading_degrees = normalize_logo_heading(degrees);
+                Ok(Some(Value::Unit))
+            }
+            "logo_circle" => {
+                let radius = expect_logo_i64(name, args, 1)? as f64;
+                if self.logo.pen_down {
+                    self.logo.circles.push(LogoCircle {
+                        x: self.logo.x,
+                        y: self.logo.y,
+                        radius,
+                        color: self.logo.color.clone(),
+                        width: self.logo.width,
+                    });
+                }
+                Ok(Some(Value::Unit))
+            }
+            "logo_width" => {
+                let width = expect_logo_i64(name, args, 1)?;
+                if width <= 0 {
+                    return Err(MiniError::runtime(
+                        "function `logo_width` expects positive i64",
+                    ));
+                }
+                self.logo.width = width;
+                Ok(Some(Value::Unit))
+            }
+            "logo_background" => {
+                let color = expect_logo_string(name, args, 1)?;
+                self.logo.background = color.to_string();
+                Ok(Some(Value::Unit))
+            }
             "logo_pen_up" => {
                 expect_logo_arg_count(name, args, 0)?;
                 self.logo.pen_down = false;
@@ -564,12 +630,44 @@ impl<'a> Interpreter<'a> {
             }
             "logo_save" => {
                 let path = expect_logo_string(name, args, 1)?;
-                fs::write(path, logo_svg(&self.logo)).map_err(|e| {
+                fs::write(path, logo_svg(&self.logo, 500, 500)).map_err(|e| {
+                    MiniError::runtime(format!("failed to write SVG `{}`: {}", path, e))
+                })?;
+                Ok(Some(Value::Unit))
+            }
+            "logo_save_with_size" => {
+                expect_logo_arg_count(name, args, 3)?;
+                let path = expect_logo_string(name, args, 3)?;
+                let width = expect_logo_i64_at(name, args, 1)?;
+                let height = expect_logo_i64_at(name, args, 2)?;
+                if width <= 0 || height <= 0 {
+                    return Err(MiniError::runtime(
+                        "function `logo_save_with_size` expects positive width and height",
+                    ));
+                }
+                fs::write(path, logo_svg(&self.logo, width, height)).map_err(|e| {
                     MiniError::runtime(format!("failed to write SVG `{}`: {}", path, e))
                 })?;
                 Ok(Some(Value::Unit))
             }
             _ => Ok(None),
+        }
+    }
+
+    fn logo_move_to(&mut self, x: f64, y: f64) {
+        let start_x = self.logo.x;
+        let start_y = self.logo.y;
+        self.logo.x = x;
+        self.logo.y = y;
+        if self.logo.pen_down {
+            self.logo.lines.push(LogoLine {
+                x1: start_x,
+                y1: start_y,
+                x2: self.logo.x,
+                y2: self.logo.y,
+                color: self.logo.color.clone(),
+                width: self.logo.width,
+            });
         }
     }
 
@@ -586,6 +684,7 @@ impl<'a> Interpreter<'a> {
                 x2: self.logo.x,
                 y2: self.logo.y,
                 color: self.logo.color.clone(),
+                width: self.logo.width,
             });
         }
     }
@@ -1508,7 +1607,11 @@ fn expect_logo_arg_count(name: &str, args: &[Value], expected: usize) -> Result<
 
 fn expect_logo_i64<'a>(name: &str, args: &'a [Value], expected: usize) -> Result<i64> {
     expect_logo_arg_count(name, args, expected)?;
-    match args.first() {
+    expect_logo_i64_at(name, args, 0)
+}
+
+fn expect_logo_i64_at(name: &str, args: &[Value], index: usize) -> Result<i64> {
+    match args.get(index) {
         Some(Value::Int(value)) => Ok(*value),
         _ => Err(MiniError::runtime(format!(
             "function `{}` expects i64 distance/degrees",
@@ -1532,14 +1635,21 @@ fn normalize_logo_heading(value: f64) -> f64 {
     value.rem_euclid(360.0)
 }
 
-fn logo_svg(logo: &LogoState) -> String {
-    let mut svg = String::from(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"500\" height=\"500\" viewBox=\"0 0 500 500\">\n<rect width=\"100%\" height=\"100%\" fill=\"white\" />\n",
+fn logo_svg(logo: &LogoState, width: i64, height: i64) -> String {
+    let mut svg = format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\">\n<rect width=\"100%\" height=\"100%\" fill=\"{}\" />\n",
+        width, height, width, height, logo.background
     );
     for line in &logo.lines {
         svg.push_str(&format!(
-            "<line x1=\"{:.2}\" y1=\"{:.2}\" x2=\"{:.2}\" y2=\"{:.2}\" stroke=\"{}\" stroke-width=\"3\" stroke-linecap=\"round\" />\n",
-            line.x1, line.y1, line.x2, line.y2, line.color
+            "<line x1=\"{:.2}\" y1=\"{:.2}\" x2=\"{:.2}\" y2=\"{:.2}\" stroke=\"{}\" stroke-width=\"{}\" stroke-linecap=\"round\" />\n",
+            line.x1, line.y1, line.x2, line.y2, line.color, line.width
+        ));
+    }
+    for circle in &logo.circles {
+        svg.push_str(&format!(
+            "<circle cx=\"{:.2}\" cy=\"{:.2}\" r=\"{:.2}\" fill=\"none\" stroke=\"{}\" stroke-width=\"{}\" />\n",
+            circle.x, circle.y, circle.radius, circle.color, circle.width
         ));
     }
     svg.push_str("</svg>\n");
@@ -1623,11 +1733,19 @@ fn builtin_alias(name: &str) -> &str {
         "logo::back" | "logo_back" => "logo_back",
         "logo::right" | "logo_right" => "logo_right",
         "logo::left" | "logo_left" => "logo_left",
+        "logo::set_position" | "logo_set_position" => "logo_set_position",
+        "logo::home" | "logo_home" => "logo_home",
+        "logo::heading" | "logo_heading" => "logo_heading",
+        "logo::set_heading" | "logo_set_heading" => "logo_set_heading",
+        "logo::circle" | "logo_circle" => "logo_circle",
+        "logo::width" | "logo_width" => "logo_width",
+        "logo::background" | "logo_background" => "logo_background",
         "logo::pen_up" | "logo_pen_up" => "logo_pen_up",
         "logo::pen_down" | "logo_pen_down" => "logo_pen_down",
         "logo::pen_color" | "logo_pen_color" => "logo_pen_color",
         "logo::clear" | "logo_clear" => "logo_clear",
         "logo::save" | "logo_save" => "logo_save",
+        "logo::save_with_size" | "logo_save_with_size" => "logo_save_with_size",
         other => other,
     }
 }

@@ -555,7 +555,13 @@ impl<'a> TypeChecker<'a> {
                 let name = builtin_alias(name);
                 if matches!(
                     name,
-                    "logo_forward" | "logo_back" | "logo_right" | "logo_left"
+                    "logo_forward"
+                        | "logo_back"
+                        | "logo_right"
+                        | "logo_left"
+                        | "logo_set_heading"
+                        | "logo_circle"
+                        | "logo_width"
                 ) {
                     if args.len() != 1 {
                         return Err(MiniError::type_error(
@@ -576,6 +582,37 @@ impl<'a> TypeChecker<'a> {
                     }
                     return Ok(Type::Unit);
                 }
+                if name == "logo_home" {
+                    if !args.is_empty() {
+                        return Err(MiniError::type_error(
+                            "function `logo_home` expects 0 arguments",
+                            Some(*span),
+                        ));
+                    }
+                    return Ok(Type::Unit);
+                }
+                if name == "logo_heading" {
+                    if !args.is_empty() {
+                        return Err(MiniError::type_error(
+                            "function `logo_heading` expects 0 arguments",
+                            Some(*span),
+                        ));
+                    }
+                    return Ok(Type::I64);
+                }
+                if name == "logo_set_position" {
+                    if args.len() != 2 {
+                        return Err(MiniError::type_error(
+                            "function `logo_set_position` expects 2 arguments",
+                            Some(*span),
+                        ));
+                    }
+                    let x_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    let y_ty = self.check_expr(&args[1], env, loop_depth)?;
+                    self.expect_type(&Type::I64, &x_ty, Some(args[0].span()))?;
+                    self.expect_type(&Type::I64, &y_ty, Some(args[1].span()))?;
+                    return Ok(Type::Unit);
+                }
                 if matches!(name, "logo_pen_color" | "logo_save") {
                     if args.len() != 1 {
                         return Err(MiniError::type_error(
@@ -585,6 +622,32 @@ impl<'a> TypeChecker<'a> {
                     }
                     let arg_ty = self.check_expr(&args[0], env, loop_depth)?;
                     self.expect_type(&Type::String, &arg_ty, Some(args[0].span()))?;
+                    return Ok(Type::Unit);
+                }
+                if name == "logo_background" {
+                    if args.len() != 1 {
+                        return Err(MiniError::type_error(
+                            "function `logo_background` expects 1 argument",
+                            Some(*span),
+                        ));
+                    }
+                    let arg_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    self.expect_type(&Type::String, &arg_ty, Some(args[0].span()))?;
+                    return Ok(Type::Unit);
+                }
+                if name == "logo_save_with_size" {
+                    if args.len() != 3 {
+                        return Err(MiniError::type_error(
+                            "function `logo_save_with_size` expects 3 arguments",
+                            Some(*span),
+                        ));
+                    }
+                    let path_ty = self.check_expr(&args[0], env, loop_depth)?;
+                    let width_ty = self.check_expr(&args[1], env, loop_depth)?;
+                    let height_ty = self.check_expr(&args[2], env, loop_depth)?;
+                    self.expect_type(&Type::String, &path_ty, Some(args[0].span()))?;
+                    self.expect_type(&Type::I64, &width_ty, Some(args[1].span()))?;
+                    self.expect_type(&Type::I64, &height_ty, Some(args[2].span()))?;
                     return Ok(Type::Unit);
                 }
                 if name == "args" {
@@ -1504,11 +1567,19 @@ fn builtin_alias(name: &str) -> &str {
         "logo::back" | "logo_back" => "logo_back",
         "logo::right" | "logo_right" => "logo_right",
         "logo::left" | "logo_left" => "logo_left",
+        "logo::set_position" | "logo_set_position" => "logo_set_position",
+        "logo::home" | "logo_home" => "logo_home",
+        "logo::heading" | "logo_heading" => "logo_heading",
+        "logo::set_heading" | "logo_set_heading" => "logo_set_heading",
+        "logo::circle" | "logo_circle" => "logo_circle",
+        "logo::width" | "logo_width" => "logo_width",
+        "logo::background" | "logo_background" => "logo_background",
         "logo::pen_up" | "logo_pen_up" => "logo_pen_up",
         "logo::pen_down" | "logo_pen_down" => "logo_pen_down",
         "logo::pen_color" | "logo_pen_color" => "logo_pen_color",
         "logo::clear" | "logo_clear" => "logo_clear",
         "logo::save" | "logo_save" => "logo_save",
+        "logo::save_with_size" | "logo_save_with_size" => "logo_save_with_size",
         other => other,
     }
 }

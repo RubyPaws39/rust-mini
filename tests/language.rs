@@ -443,6 +443,36 @@ fn main() {
 }
 
 #[test]
+fn logo_position_home_heading_circle_width_background_and_size_work() {
+    let _ = std::fs::remove_file("examples/logo_test_state.svg");
+    let source = r#"
+fn main() {
+    logo::clear();
+    logo::background("mintcream");
+    logo::width(7);
+    logo::set_position(100, 100);
+    logo::set_heading(90);
+    print(logo::heading());
+    logo::circle(25);
+    logo::forward(50);
+    logo::home();
+    logo::save_with_size("examples/logo_test_state.svg", 320, 240);
+}
+"#;
+    assert_eq!(parse_check_run(source), vec!["90"]);
+    let svg = std::fs::read_to_string("examples/logo_test_state.svg").unwrap();
+    assert!(svg.contains("width=\"320\""));
+    assert!(svg.contains("height=\"240\""));
+    assert!(svg.contains("fill=\"mintcream\""));
+    assert!(svg.contains("<circle"));
+    assert!(svg.contains("r=\"25.00\""));
+    assert!(svg.contains("stroke-width=\"7\""));
+    assert!(svg.contains("x1=\"250.00\""));
+    assert!(svg.contains("x2=\"100.00\""));
+    std::fs::remove_file("examples/logo_test_state.svg").unwrap();
+}
+
+#[test]
 fn logo_invalid_runtime_argument_is_friendly() {
     let source = r#"
 fn main() {
@@ -501,6 +531,7 @@ fn checks_all_success_examples() {
         "examples/logo_square.rmini",
         "examples/logo_triangle.rmini",
         "examples/logo_spiral.rmini",
+        "examples/logo_flower.rmini",
         "examples/chess_prototype.rmini",
         "examples/rpg_demo.rmini",
     ] {

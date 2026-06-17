@@ -615,6 +615,7 @@ cargo run -- examples\turtle_demo.rmini
 cargo run -- run examples\logo_square.rmini
 cargo run -- run examples\logo_triangle.rmini
 cargo run -- run examples\logo_spiral.rmini
+cargo run -- run examples\logo_flower.rmini
 cargo run -- examples\adventure_app.rmini
 cargo run -- examples\furry_love_game.rmini
 ```
