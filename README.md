@@ -15,6 +15,8 @@ cd R:\Rust\rust_mini
 cargo run -- examples\hello.rmini
 ```
 
+Downloaded the ZIP? Read [INSTALL_AND_USE.md](INSTALL_AND_USE.md).
+
 Check a program without running it:
 
 ```powershell
