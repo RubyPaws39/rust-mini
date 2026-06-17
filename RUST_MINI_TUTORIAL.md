@@ -630,7 +630,7 @@ Missing or incomplete:
 - non-lexical lifetimes
 - closures
 - full macro system
-- `?` operator
+- Rust's `?` error-propagation operator is not supported yet; use `match` or `.unwrap_or(...)`
 - full pattern matching
 - destructuring `let`
 - real crate/package manager
