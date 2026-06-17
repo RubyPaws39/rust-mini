@@ -95,6 +95,7 @@ References and safety:
 
 - immutable references: `&x`
 - mutable references: `&mut x`
+- named lifetime syntax on reference parameters: `fn f<'a>(x: &'a i64)`
 - dereference: `*x`
 - move checking
 - simple borrow checking
@@ -190,6 +191,7 @@ Rust Mini tracks simplified ownership and borrowing:
 - mutable and immutable borrows cannot overlap
 - variables cannot be assigned while borrowed
 - `&mut` can only borrow mutable variables
+- named lifetimes on function, method, and trait-method reference parameters are parsed and checked
 - functions cannot return references
 - compound values cannot store references yet
 
@@ -218,6 +220,7 @@ cargo run -- examples\hello.rmini
 cargo run -- examples\math.rmini
 cargo run -- examples\functions.rmini
 cargo run -- examples\borrow_ok.rmini
+cargo run -- examples\lifetimes.rmini
 cargo run -- examples\control_flow.rmini
 cargo run -- examples\data_types.rmini
 cargo run -- examples\vecs.rmini
@@ -300,7 +303,8 @@ Missing or incomplete:
 - user-defined generics
 - trait bounds
 - trait objects
-- full lifetime syntax
+- lifetime return analysis
+- struct-level lifetime parameters
 - non-lexical lifetimes
 - closures
 - full macro system
@@ -378,6 +382,7 @@ cargo run -- run examples\logo_square.rmini
 cargo run -- run examples\logo_triangle.rmini
 cargo run -- run examples\logo_spiral.rmini
 cargo run -- run examples\logo_flower.rmini
+cargo run -- run examples\logo_shiba_head.rmini
 ```
 
 ## Library Turtle Graphics

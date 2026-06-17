@@ -37,6 +37,7 @@ impl<'a> Lexer<'a> {
                 }
                 '0'..='9' => tokens.push(self.number()?),
                 '"' => tokens.push(self.string()?),
+                '\'' => tokens.push(self.lifetime()?),
                 'a'..='z' | 'A'..='Z' | '_' => tokens.push(self.ident_or_keyword()),
                 '(' => tokens.push(self.single(TokenKind::LParen)),
                 ')' => tokens.push(self.single(TokenKind::RParen)),
@@ -139,6 +140,24 @@ impl<'a> Lexer<'a> {
             }
         }
         Err(MiniError::lex("unterminated string literal", span))
+    }
+
+    fn lifetime(&mut self) -> Result<Token> {
+        let span = self.span();
+        self.advance();
+        let mut name = String::new();
+        while let Some(ch) = self.peek() {
+            if ch.is_ascii_alphanumeric() || ch == '_' {
+                name.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        if name.is_empty() {
+            return Err(MiniError::lex("expected lifetime name after `'`", span));
+        }
+        Ok(Token::new(TokenKind::Lifetime(name), span))
     }
 
     fn ident_or_keyword(&mut self) -> Token {

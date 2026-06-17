@@ -260,17 +260,19 @@ impl<'a> TypeChecker<'a> {
                         }
                         self.expect_type(&info.ty, &value_ty, Some(*span))?;
                     }
-                    Expression::Deref { expr, .. } => match self
-                        .check_expr(expr, env, loop_depth)?
-                    {
-                        Type::MutRef(inner) => self.expect_type(&inner, &value_ty, Some(*span))?,
-                        other => {
-                            return Err(MiniError::type_error(
-                                format!("cannot assign through dereference of `{:?}`", other),
-                                Some(*span),
-                            ));
+                    Expression::Deref { expr, .. } => {
+                        match self.check_expr(expr, env, loop_depth)? {
+                            Type::MutRef(inner) | Type::NamedMutRef(_, inner) => {
+                                self.expect_type(&inner, &value_ty, Some(*span))?
+                            }
+                            other => {
+                                return Err(MiniError::type_error(
+                                    format!("cannot assign through dereference of `{:?}`", other),
+                                    Some(*span),
+                                ));
+                            }
                         }
-                    },
+                    }
                     Expression::Index { target, index, .. } => {
                         let target_ty = self.check_expr(target, env, loop_depth)?;
                         let index_ty = self.check_expr(index, env, loop_depth)?;
@@ -291,7 +293,10 @@ impl<'a> TypeChecker<'a> {
                     Expression::Field { target, field, .. } => {
                         let target_ty = self.check_expr(target, env, loop_depth)?;
                         let target_ty = match target_ty {
-                            Type::Ref(inner) | Type::MutRef(inner) => *inner,
+                            Type::Ref(inner)
+                            | Type::MutRef(inner)
+                            | Type::NamedRef(_, inner)
+                            | Type::NamedMutRef(_, inner) => *inner,
                             other => other,
                         };
                         match target_ty {
@@ -905,7 +910,7 @@ impl<'a> TypeChecker<'a> {
                     let target_ty = self.check_expr(&args[0], env, loop_depth)?;
                     let value_ty = self.check_expr(&args[1], env, loop_depth)?;
                     match target_ty {
-                        Type::MutRef(inner) => {
+                        Type::MutRef(inner) | Type::NamedMutRef(_, inner) => {
                             match *inner {
                                 Type::Vec(elem) => {
                                     self.expect_type(&elem, &value_ty, Some(args[1].span()))?
@@ -1108,7 +1113,10 @@ impl<'a> TypeChecker<'a> {
                     ));
                 }
                 match &sig.params[0] {
-                    Type::Ref(inner) | Type::MutRef(inner) => {
+                    Type::Ref(inner)
+                    | Type::MutRef(inner)
+                    | Type::NamedRef(_, inner)
+                    | Type::NamedMutRef(_, inner) => {
                         self.expect_type(inner, &recv_ty, Some(receiver.span()))?;
                     }
                     expected => self.expect_type(expected, &recv_ty, Some(receiver.span()))?,
@@ -1260,7 +1268,10 @@ impl<'a> TypeChecker<'a> {
             } => {
                 let target_ty = self.check_expr(target, env, loop_depth)?;
                 let target_ty = match target_ty {
-                    Type::Ref(inner) | Type::MutRef(inner) => *inner,
+                    Type::Ref(inner)
+                    | Type::MutRef(inner)
+                    | Type::NamedRef(_, inner)
+                    | Type::NamedMutRef(_, inner) => *inner,
                     other => other,
                 };
                 match target_ty {
@@ -1472,7 +1483,10 @@ impl<'a> TypeChecker<'a> {
                 )),
             },
             Expression::Deref { expr, span } => match self.check_expr(expr, env, loop_depth)? {
-                Type::Ref(inner) | Type::MutRef(inner) => Ok(*inner),
+                Type::Ref(inner)
+                | Type::MutRef(inner)
+                | Type::NamedRef(_, inner)
+                | Type::NamedMutRef(_, inner) => Ok(*inner),
                 other => Err(MiniError::type_error(
                     format!("cannot dereference `{:?}`", other),
                     Some(*span),
@@ -1482,10 +1496,12 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn expect_type(&self, expected: &Type, actual: &Type, span: Option<Span>) -> Result<()> {
-        if expected == actual
-            || (*expected == Type::String && *actual == Type::Str)
-            || option_types_compatible(expected, actual)
-            || result_types_compatible(expected, actual)
+        let expected_plain = expected.without_lifetimes();
+        let actual_plain = actual.without_lifetimes();
+        if expected_plain == actual_plain
+            || (expected_plain == Type::String && actual_plain == Type::Str)
+            || option_types_compatible(&expected_plain, &actual_plain)
+            || result_types_compatible(&expected_plain, &actual_plain)
         {
             Ok(())
         } else {
@@ -1512,6 +1528,12 @@ impl<'a> TypeChecker<'a> {
             ),
             Type::Ref(item) => Type::Ref(Box::new(self.resolve_type(item))),
             Type::MutRef(item) => Type::MutRef(Box::new(self.resolve_type(item))),
+            Type::NamedRef(lifetime, item) => {
+                Type::NamedRef(lifetime.clone(), Box::new(self.resolve_type(item)))
+            }
+            Type::NamedMutRef(lifetime, item) => {
+                Type::NamedMutRef(lifetime.clone(), Box::new(self.resolve_type(item)))
+            }
             other => other.clone(),
         }
     }
@@ -1603,6 +1625,12 @@ fn replace_self_type(ty: &Type, target: &str) -> Type {
         ),
         Type::Ref(item) => Type::Ref(Box::new(replace_self_type(item, target))),
         Type::MutRef(item) => Type::MutRef(Box::new(replace_self_type(item, target))),
+        Type::NamedRef(lifetime, item) => {
+            Type::NamedRef(lifetime.clone(), Box::new(replace_self_type(item, target)))
+        }
+        Type::NamedMutRef(lifetime, item) => {
+            Type::NamedMutRef(lifetime.clone(), Box::new(replace_self_type(item, target)))
+        }
         other => other.clone(),
     }
 }

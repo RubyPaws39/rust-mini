@@ -5,11 +5,16 @@ use crate::token::{Token, TokenKind};
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
+    lifetime_scope: Vec<String>,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, pos: 0 }
+        Self {
+            tokens,
+            pos: 0,
+            lifetime_scope: Vec::new(),
+        }
     }
 
     pub fn parse_program(&mut self) -> Result<Program> {
@@ -145,6 +150,8 @@ impl Parser {
     fn parse_trait_method(&mut self) -> Result<TraitMethod> {
         let span = self.expect_simple(TokenKind::Fn, "expected `fn` in trait block")?;
         let name = self.expect_ident("expected trait method name")?;
+        let lifetime_params = self.parse_lifetime_params()?;
+        let previous_lifetimes = self.enter_lifetime_scope(&lifetime_params);
         self.expect_simple(TokenKind::LParen, "expected `(` after trait method name")?;
         let params = self.parse_parameter_list("Self")?;
         self.expect_simple(
@@ -156,9 +163,11 @@ impl Parser {
         } else {
             Type::Unit
         };
+        self.lifetime_scope = previous_lifetimes;
         self.expect_simple(TokenKind::Semi, "expected `;` after trait method")?;
         Ok(TraitMethod {
             name,
+            lifetime_params,
             params,
             ret_type,
             span,
@@ -235,6 +244,8 @@ impl Parser {
     fn parse_function(&mut self, public: bool) -> Result<Function> {
         let span = self.expect_simple(TokenKind::Fn, "expected `fn`")?;
         let name = self.expect_ident("expected function name")?;
+        let lifetime_params = self.parse_lifetime_params()?;
+        let previous_lifetimes = self.enter_lifetime_scope(&lifetime_params);
         self.expect_simple(TokenKind::LParen, "expected `(` after function name")?;
         let params = self.parse_parameter_list("Self")?;
         self.expect_simple(TokenKind::RParen, "expected `)` after parameters")?;
@@ -243,9 +254,11 @@ impl Parser {
         } else {
             Type::Unit
         };
+        self.lifetime_scope = previous_lifetimes;
         let body = self.parse_block()?;
         Ok(Function {
             name,
+            lifetime_params,
             params,
             ret_type,
             body,
@@ -258,10 +271,13 @@ impl Parser {
         let span = self.expect_simple(TokenKind::Fn, "expected `fn` in impl block")?;
         let short_name = self.expect_ident("expected method name")?;
         let name = format!("{}::{}", target, short_name);
+        let lifetime_params = self.parse_lifetime_params()?;
+        let previous_lifetimes = self.enter_lifetime_scope(&lifetime_params);
         self.expect_simple(TokenKind::LParen, "expected `(` after method name")?;
         let mut params = Vec::new();
         if !self.at(&TokenKind::RParen) {
             if self.eat(&TokenKind::Amp) {
+                let _lifetime = self.parse_optional_lifetime()?;
                 let mutable = self.eat(&TokenKind::Mut);
                 if !self.current_is_ident("self") {
                     return Err(MiniError::parse(
@@ -334,15 +350,90 @@ impl Parser {
         } else {
             Type::Unit
         };
+        self.lifetime_scope = previous_lifetimes;
         let body = self.parse_block()?;
         Ok(Function {
             name,
+            lifetime_params,
             params,
             ret_type,
             body,
             public: false,
             span,
         })
+    }
+
+    fn parse_lifetime_params(&mut self) -> Result<Vec<String>> {
+        let mut lifetimes = Vec::new();
+        if !self.eat(&TokenKind::Lt) {
+            return Ok(lifetimes);
+        }
+        if self.at(&TokenKind::Gt) {
+            return Err(MiniError::parse(
+                "expected lifetime parameter",
+                self.current().span,
+            ));
+        }
+        loop {
+            let span = self.current().span;
+            let name = match self.current().kind.clone() {
+                TokenKind::Lifetime(name) => {
+                    self.advance();
+                    name
+                }
+                _ => {
+                    return Err(MiniError::parse(
+                        "expected lifetime parameter like `'a`",
+                        span,
+                    ))
+                }
+            };
+            if name == "static" {
+                return Err(MiniError::parse(
+                    "`'static` is reserved and cannot be declared as a lifetime parameter",
+                    span,
+                ));
+            }
+            if lifetimes.iter().any(|existing| existing == &name) {
+                return Err(MiniError::parse(
+                    format!("duplicate lifetime parameter `'{}`", name),
+                    span,
+                ));
+            }
+            lifetimes.push(name);
+            if !self.eat(&TokenKind::Comma) {
+                break;
+            }
+            if self.at(&TokenKind::Gt) {
+                break;
+            }
+        }
+        self.expect_simple(TokenKind::Gt, "expected `>` after lifetime parameters")?;
+        Ok(lifetimes)
+    }
+
+    fn enter_lifetime_scope(&mut self, lifetimes: &[String]) -> Vec<String> {
+        let previous = self.lifetime_scope.clone();
+        self.lifetime_scope = lifetimes.to_vec();
+        previous
+    }
+
+    fn parse_optional_lifetime(&mut self) -> Result<Option<String>> {
+        let span = self.current().span;
+        let lifetime = match self.current().kind.clone() {
+            TokenKind::Lifetime(name) => {
+                self.advance();
+                name
+            }
+            _ => return Ok(None),
+        };
+        if lifetime != "static" && !self.lifetime_scope.iter().any(|name| name == &lifetime) {
+            return Err(MiniError::parse(
+                format!("undeclared lifetime `'{}`", lifetime),
+                span,
+            ));
+        }
+        Ok(Some(lifetime))
     }
 
     fn parse_parameter_list(&mut self, self_type: &str) -> Result<Vec<Parameter>> {
@@ -352,6 +443,7 @@ impl Parser {
         }
         loop {
             if self.eat(&TokenKind::Amp) {
+                let _lifetime = self.parse_optional_lifetime()?;
                 let mutable = self.eat(&TokenKind::Mut);
                 if !self.current_is_ident("self") {
                     return Err(MiniError::parse(
@@ -396,10 +488,21 @@ impl Parser {
 
     fn parse_type(&mut self) -> Result<Type> {
         if self.eat(&TokenKind::Amp) {
+            let lifetime = self.parse_optional_lifetime()?;
             if self.eat(&TokenKind::Mut) {
-                Ok(Type::MutRef(Box::new(self.parse_type()?)))
+                let inner = Box::new(self.parse_type()?);
+                Ok(if let Some(lifetime) = lifetime {
+                    Type::NamedMutRef(lifetime, inner)
+                } else {
+                    Type::MutRef(inner)
+                })
             } else {
-                Ok(Type::Ref(Box::new(self.parse_type()?)))
+                let inner = Box::new(self.parse_type()?);
+                Ok(if let Some(lifetime) = lifetime {
+                    Type::NamedRef(lifetime, inner)
+                } else {
+                    Type::Ref(inner)
+                })
             }
         } else if self.eat(&TokenKind::TypeI64) {
             Ok(Type::I64)

@@ -1,0 +1,131 @@
+fn move_to(x: i64, y: i64) {
+    logo::pen_up();
+    logo::set_position(x, y);
+    logo::pen_down();
+}
+
+fn line_to(x: i64, y: i64) {
+    logo::set_position(x, y);
+}
+
+fn triangle(x1: i64, y1: i64, x2: i64, y2: i64, x3: i64, y3: i64) {
+    move_to(x1, y1);
+    line_to(x2, y2);
+    line_to(x3, y3);
+    line_to(x1, y1);
+}
+
+fn whisker(x1: i64, y1: i64, x2: i64, y2: i64) {
+    move_to(x1, y1);
+    line_to(x2, y2);
+}
+
+fn main() {
+    logo::clear();
+    logo::background("midnightblue");
+
+    // soft glow rings
+    logo::width(2);
+    logo::pen_color("lightcyan");
+    move_to(250, 245);
+    logo::circle(145);
+    logo::circle(132);
+
+    // big floppy ears
+    logo::width(8);
+    logo::pen_color("pink");
+    triangle(145, 180, 70, 130, 118, 275);
+    triangle(355, 180, 430, 130, 382, 275);
+
+    // inner ears
+    logo::width(4);
+    logo::pen_color("palevioletred");
+    triangle(145, 190, 98, 155, 124, 245);
+    triangle(355, 190, 402, 155, 376, 245);
+
+    // head and cheek fluff
+    logo::width(9);
+    logo::pen_color("pink");
+    move_to(250, 245);
+    logo::circle(118);
+    move_to(130, 270);
+    logo::circle(36);
+    move_to(370, 270);
+    logo::circle(36);
+
+    // hair tufts
+    logo::width(7);
+    logo::pen_color("lightpink");
+    triangle(205, 145, 245, 70, 258, 160);
+    triangle(240, 142, 300, 85, 292, 172);
+    triangle(182, 165, 145, 110, 230, 150);
+    triangle(310, 160, 365, 120, 285, 145);
+
+    // white muzzle
+    logo::width(7);
+    logo::pen_color("white");
+    move_to(250, 305);
+    logo::circle(72);
+    move_to(215, 285);
+    logo::circle(46);
+    move_to(285, 285);
+    logo::circle(46);
+
+    // eyes
+    logo::width(7);
+    logo::pen_color("white");
+    move_to(205, 245);
+    logo::circle(31);
+    move_to(295, 245);
+    logo::circle(31);
+
+    logo::width(10);
+    logo::pen_color("black");
+    move_to(205, 250);
+    logo::circle(17);
+    move_to(295, 250);
+    logo::circle(17);
+
+    logo::width(3);
+    logo::pen_color("white");
+    move_to(197, 239);
+    logo::circle(5);
+    move_to(287, 239);
+    logo::circle(5);
+
+    // brows
+    logo::width(7);
+    logo::pen_color("black");
+    whisker(176, 211, 216, 202);
+    whisker(284, 202, 324, 211);
+
+    // nose and smile
+    logo::width(9);
+    logo::pen_color("black");
+    move_to(250, 285);
+    logo::circle(14);
+    logo::width(4);
+    whisker(250, 300, 250, 318);
+    whisker(250, 318, 225, 330);
+    whisker(250, 318, 275, 330);
+
+    // cheek kiss mark
+    logo::width(5);
+    logo::pen_color("crimson");
+    move_to(323, 300);
+    logo::circle(10);
+    whisker(316, 293, 330, 307);
+    whisker(331, 293, 316, 307);
+
+    // collar hint
+    logo::width(13);
+    logo::pen_color("deeppink");
+    whisker(180, 405, 320, 405);
+    logo::width(5);
+    logo::pen_color("goldenrod");
+    move_to(250, 430);
+    logo::circle(22);
+
+    logo::save_with_size("shiba_head.svg", 500, 500);
+    println!("wrote shiba_head.svg");
+}

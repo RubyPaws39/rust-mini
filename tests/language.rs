@@ -500,6 +500,7 @@ fn checks_all_success_examples() {
         "examples/math.rmini",
         "examples/functions.rmini",
         "examples/borrow_ok.rmini",
+        "examples/lifetimes.rmini",
         "examples/control_flow.rmini",
         "examples/loop_control.rmini",
         "examples/data_types.rmini",
@@ -532,6 +533,7 @@ fn checks_all_success_examples() {
         "examples/logo_triangle.rmini",
         "examples/logo_spiral.rmini",
         "examples/logo_flower.rmini",
+        "examples/logo_shiba_head.rmini",
         "examples/chess_prototype.rmini",
         "examples/rpg_demo.rmini",
     ] {
@@ -706,6 +708,28 @@ fn runs_function_call_and_return() {
 fn runs_mutable_reference_call() {
     let source = include_str!("../examples/borrow_ok.rmini");
     assert_eq!(parse_check_run(source), vec!["9"]);
+}
+
+#[test]
+fn runs_named_lifetime_reference_params() {
+    let source = include_str!("../examples/lifetimes.rmini");
+    assert_eq!(parse_check_run(source), vec!["&hp", "15"]);
+}
+
+#[test]
+fn rejects_undeclared_lifetime() {
+    let tokens = Lexer::new("fn show(value: &'a i64) {}").lex().unwrap();
+    let err = Parser::new(tokens).parse_program().unwrap_err().to_string();
+    assert!(err.contains("undeclared lifetime `'a`"));
+}
+
+#[test]
+fn rejects_duplicate_lifetime_parameter() {
+    let tokens = Lexer::new("fn show<'a, 'a>(value: &'a i64) {}")
+        .lex()
+        .unwrap();
+    let err = Parser::new(tokens).parse_program().unwrap_err().to_string();
+    assert!(err.contains("duplicate lifetime parameter `'a`"));
 }
 
 #[test]

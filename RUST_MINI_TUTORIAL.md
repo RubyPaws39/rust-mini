@@ -444,6 +444,14 @@ Use `&mut x` for mutable references.
 
 Use `*x` to dereference.
 
+Named lifetime syntax works on function parameters:
+
+```rust
+fn heal<'a>(hp: &'a mut i64) {
+    *hp = *hp + 5;
+}
+```
+
 ## 19. Borrow Rules
 
 Rust Mini checks ownership and borrowing.
@@ -456,6 +464,7 @@ Rules:
 - mutable and immutable borrows cannot overlap
 - cannot assign to a borrowed value
 - `&mut` can only borrow mutable variables
+- named lifetimes on function, method, and trait-method reference parameters are parsed and checked
 - functions cannot return references
 - structs, enums, tuples, arrays, and vecs cannot store references yet
 
@@ -608,6 +617,7 @@ fn main() {
 
 ```powershell
 cargo run -- examples\interactive_calculator.rmini
+cargo run -- examples\lifetimes.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
 cargo run -- examples\chess_prototype.rmini
@@ -616,11 +626,12 @@ cargo run -- run examples\logo_square.rmini
 cargo run -- run examples\logo_triangle.rmini
 cargo run -- run examples\logo_spiral.rmini
 cargo run -- run examples\logo_flower.rmini
+cargo run -- run examples\logo_shiba_head.rmini
 cargo run -- examples\adventure_app.rmini
 cargo run -- examples\furry_love_game.rmini
 ```
 
-Logo examples create SVG files such as `square.svg`.
+Logo examples create SVG files such as `square.svg`, `flower.svg`, and `shiba_head.svg`.
 
 Chess prototype uses board indexes `0..63`. It is not full chess yet.
 
@@ -633,7 +644,8 @@ Missing or incomplete:
 - user-defined generics
 - trait bounds
 - trait objects
-- full lifetime syntax
+- lifetime return analysis
+- struct-level lifetime parameters
 - non-lexical lifetimes
 - closures
 - full macro system

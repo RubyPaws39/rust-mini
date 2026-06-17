@@ -377,7 +377,10 @@ impl<'a> BorrowChecker<'a> {
             Expression::Deref { expr, .. } => {
                 let effect = self.check_expr(expr, env)?;
                 let ty = match effect.ty {
-                    Type::Ref(inner) | Type::MutRef(inner) => *inner,
+                    Type::Ref(inner)
+                    | Type::MutRef(inner)
+                    | Type::NamedRef(_, inner)
+                    | Type::NamedMutRef(_, inner) => *inner,
                     other => other,
                 };
                 if let Some(loan) = effect.loan {
@@ -642,8 +645,10 @@ impl<'a> BorrowChecker<'a> {
                     if let Some(loan) = effect.loan {
                         active.push(loan);
                     }
-                    if matches!(params.get(idx), Some(Type::MutRef(_)))
-                        && !matches!(effect.ty, Type::MutRef(_))
+                    if matches!(
+                        params.get(idx),
+                        Some(Type::MutRef(_) | Type::NamedMutRef(_, _))
+                    ) && !matches!(effect.ty, Type::MutRef(_) | Type::NamedMutRef(_, _))
                     {
                         return Err(MiniError::borrow(
                             "expected mutable reference argument",
@@ -772,7 +777,10 @@ impl<'a> BorrowChecker<'a> {
                 }
                 let type_name = match &recv_ty {
                     Type::Struct(name) | Type::Enum(name) => name.clone(),
-                    Type::Ref(inner) | Type::MutRef(inner) => match &**inner {
+                    Type::Ref(inner)
+                    | Type::MutRef(inner)
+                    | Type::NamedRef(_, inner)
+                    | Type::NamedMutRef(_, inner) => match &**inner {
                         Type::Struct(name) | Type::Enum(name) => name.clone(),
                         _ => String::new(),
                     },
@@ -784,9 +792,20 @@ impl<'a> BorrowChecker<'a> {
                     .get(&method_name)
                     .map(|sig| sig.params.clone())
                     .unwrap_or_default();
-                if matches!(params.first(), Some(Type::Ref(_)) | Some(Type::MutRef(_))) {
+                if matches!(
+                    params.first(),
+                    Some(
+                        Type::Ref(_)
+                            | Type::MutRef(_)
+                            | Type::NamedRef(_, _)
+                            | Type::NamedMutRef(_, _)
+                    )
+                ) {
                     if let Expression::Var(var, _) = &**receiver {
-                        let mutable = matches!(params.first(), Some(Type::MutRef(_)));
+                        let mutable = matches!(
+                            params.first(),
+                            Some(Type::MutRef(_) | Type::NamedMutRef(_, _))
+                        );
                         let effect = self.check_expr(
                             &Expression::Ref {
                                 mutable,
@@ -894,7 +913,10 @@ impl<'a> BorrowChecker<'a> {
                         ));
                     }
                     let base_ty = match &state.ty {
-                        Type::Ref(inner) | Type::MutRef(inner) => &**inner,
+                        Type::Ref(inner)
+                        | Type::MutRef(inner)
+                        | Type::NamedRef(_, inner)
+                        | Type::NamedMutRef(_, inner) => &**inner,
                         other => other,
                     };
                     let ty = match base_ty {
@@ -1060,7 +1082,7 @@ impl<'a> BorrowChecker<'a> {
                 let state = lookup(env, name).ok_or_else(|| {
                     MiniError::borrow(format!("unknown variable `{}`", name), Some(span))
                 })?;
-                if matches!(state.ty, Type::MutRef(_)) && !state.moved {
+                if matches!(state.ty, Type::MutRef(_) | Type::NamedMutRef(_, _)) && !state.moved {
                     Ok(())
                 } else {
                     Err(MiniError::borrow(

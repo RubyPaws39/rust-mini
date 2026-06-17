@@ -1,0 +1,14 @@
+fn show<'a>(value: &'a i64) {
+    print(value);
+}
+
+fn heal<'a>(hp: &'a mut i64) {
+    *hp = *hp + 5;
+}
+
+fn main() {
+    let mut hp: i64 = 10;
+    show(&hp);
+    heal(&mut hp);
+    print(hp);
+}

@@ -29,6 +29,7 @@ pub enum TokenKind {
     TypeBool,
     TypeStr,
     TypeString,
+    Lifetime(String),
     Ident(String),
     Int(i64),
     Float(u64),

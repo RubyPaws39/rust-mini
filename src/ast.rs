@@ -44,6 +44,7 @@ pub struct TraitDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TraitMethod {
     pub name: String,
+    pub lifetime_params: Vec<String>,
     pub params: Vec<Parameter>,
     pub ret_type: Type,
     pub span: Span,
@@ -80,6 +81,7 @@ pub struct StructField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
     pub name: String,
+    pub lifetime_params: Vec<String>,
     pub params: Vec<Parameter>,
     pub ret_type: Type,
     pub body: Block,
@@ -111,14 +113,21 @@ pub enum Type {
     Enum(String),
     Ref(Box<Type>),
     MutRef(Box<Type>),
+    NamedRef(String, Box<Type>),
+    NamedMutRef(String, Box<Type>),
 }
 
 impl Type {
     pub fn is_copy(&self) -> bool {
         match self {
-            Type::I64 | Type::F64 | Type::Bool | Type::Unit | Type::Ref(_) | Type::MutRef(_) => {
-                true
-            }
+            Type::I64
+            | Type::F64
+            | Type::Bool
+            | Type::Unit
+            | Type::Ref(_)
+            | Type::MutRef(_)
+            | Type::NamedRef(_, _)
+            | Type::NamedMutRef(_, _) => true,
             Type::Range => true,
             Type::Tuple(items) => items.iter().all(Type::is_copy),
             Type::Array(item, _) => item.is_copy(),
@@ -130,7 +139,7 @@ impl Type {
 
     pub fn contains_ref(&self) -> bool {
         match self {
-            Type::Ref(_) | Type::MutRef(_) => true,
+            Type::Ref(_) | Type::MutRef(_) | Type::NamedRef(_, _) | Type::NamedMutRef(_, _) => true,
             Type::Tuple(items) => items.iter().any(Type::contains_ref),
             Type::Array(item, _) | Type::Vec(item) => item.contains_ref(),
             Type::Option(item) => item.contains_ref(),
@@ -144,6 +153,24 @@ impl Type {
             | Type::Unit
             | Type::Struct(_)
             | Type::Enum(_) => false,
+        }
+    }
+
+    pub fn without_lifetimes(&self) -> Type {
+        match self {
+            Type::NamedRef(_, item) => Type::Ref(Box::new(item.without_lifetimes())),
+            Type::NamedMutRef(_, item) => Type::MutRef(Box::new(item.without_lifetimes())),
+            Type::Ref(item) => Type::Ref(Box::new(item.without_lifetimes())),
+            Type::MutRef(item) => Type::MutRef(Box::new(item.without_lifetimes())),
+            Type::Tuple(items) => Type::Tuple(items.iter().map(Type::without_lifetimes).collect()),
+            Type::Array(item, len) => Type::Array(Box::new(item.without_lifetimes()), *len),
+            Type::Vec(item) => Type::Vec(Box::new(item.without_lifetimes())),
+            Type::Option(item) => Type::Option(Box::new(item.without_lifetimes())),
+            Type::Result(ok, err) => Type::Result(
+                Box::new(ok.without_lifetimes()),
+                Box::new(err.without_lifetimes()),
+            ),
+            other => other.clone(),
         }
     }
 }
