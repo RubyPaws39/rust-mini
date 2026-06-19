@@ -388,6 +388,22 @@ impl<'a> BorrowChecker<'a> {
                 }
                 Ok(Effect { ty, loan: None })
             }
+            Expression::Try { expr, span } => {
+                let effect = self.check_expr(expr, env)?;
+                let ty = match effect.ty {
+                    Type::Option(inner) | Type::Result(inner, _) => *inner,
+                    other => {
+                        return Err(MiniError::borrow(
+                            format!("`?` expects Option or Result, found `{:?}`", other),
+                            Some(*span),
+                        ))
+                    }
+                };
+                if let Some(loan) = effect.loan {
+                    self.release_loan(&loan, env);
+                }
+                Ok(Effect { ty, loan: None })
+            }
             Expression::Binary {
                 op, left, right, ..
             } => {

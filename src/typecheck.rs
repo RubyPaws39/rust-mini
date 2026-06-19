@@ -1492,6 +1492,13 @@ impl<'a> TypeChecker<'a> {
                     Some(*span),
                 )),
             },
+            Expression::Try { expr, span } => match self.check_expr(expr, env, loop_depth)? {
+                Type::Option(inner) | Type::Result(inner, _) => Ok(*inner),
+                other => Err(MiniError::type_error(
+                    format!("`?` expects Option or Result, found `{:?}`", other),
+                    Some(*span),
+                )),
+            },
         }
     }
 

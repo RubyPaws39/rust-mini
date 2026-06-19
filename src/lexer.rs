@@ -72,6 +72,7 @@ impl<'a> Lexer<'a> {
                 '&' if self.peek_next() == Some('&') => tokens.push(self.double(TokenKind::AndAnd)),
                 '&' => tokens.push(self.single(TokenKind::Amp)),
                 '|' if self.peek_next() == Some('|') => tokens.push(self.double(TokenKind::OrOr)),
+                '?' => tokens.push(self.single(TokenKind::Question)),
                 '/' => tokens.push(self.single(TokenKind::Slash)),
                 _ => {
                     return Err(MiniError::lex(

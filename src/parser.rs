@@ -827,6 +827,12 @@ impl Parser {
                         span,
                     };
                 }
+            } else if self.eat(&TokenKind::Question) {
+                let span = expr.span();
+                expr = Expression::Try {
+                    expr: Box::new(expr),
+                    span,
+                };
             } else {
                 break;
             }

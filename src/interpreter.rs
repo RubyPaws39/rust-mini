@@ -703,7 +703,7 @@ impl<'a> Interpreter<'a> {
         let flow = if let Some(tail) = &block.tail {
             match &**tail {
                 Expression::Block(_) | Expression::If { .. } => self.eval_expr_statement(tail)?,
-                _ => Flow::Value(self.eval_expr(tail)?),
+                _ => self.eval_expr_with_try(tail)?,
             }
         } else {
             Flow::Value(Value::Unit)
@@ -720,7 +720,13 @@ impl<'a> Interpreter<'a> {
                 value,
                 ..
             } => {
-                let value = self.eval_expr(value)?;
+                let value = match self.eval_expr_with_try(value)? {
+                    Flow::Value(value) => value,
+                    flow @ Flow::Return(_) => return Ok(flow),
+                    Flow::Break | Flow::Continue => {
+                        return Err(MiniError::runtime("loop control escaped let expression"))
+                    }
+                };
                 self.frames.last_mut().unwrap().insert(
                     name.clone(),
                     RuntimeVar {
@@ -731,14 +737,26 @@ impl<'a> Interpreter<'a> {
                 Ok(Flow::Value(Value::Unit))
             }
             Statement::Assign { target, value, .. } => {
-                let value = self.eval_expr(value)?;
+                let value = match self.eval_expr_with_try(value)? {
+                    Flow::Value(value) => value,
+                    flow @ Flow::Return(_) => return Ok(flow),
+                    Flow::Break | Flow::Continue => {
+                        return Err(MiniError::runtime("loop control escaped assignment"))
+                    }
+                };
                 self.assign_target(target, value)?;
                 Ok(Flow::Value(Value::Unit))
             }
             Statement::Expr(expr) => self.eval_expr_statement(expr),
             Statement::Return { value, .. } => {
                 let value = if let Some(value) = value {
-                    self.eval_expr(value)?
+                    match self.eval_expr_with_try(value)? {
+                        Flow::Value(value) => value,
+                        flow @ Flow::Return(_) => return Ok(flow),
+                        Flow::Break | Flow::Continue => {
+                            return Err(MiniError::runtime("loop control escaped return"))
+                        }
+                    }
                 } else {
                     Value::Unit
                 };
@@ -749,7 +767,17 @@ impl<'a> Interpreter<'a> {
             Statement::While {
                 condition, body, ..
             } => {
-                while self.eval_expr(condition)? == Value::Bool(true) {
+                loop {
+                    let cond = match self.eval_expr_with_try(condition)? {
+                        Flow::Value(value) => value,
+                        flow @ Flow::Return(_) => return Ok(flow),
+                        Flow::Break | Flow::Continue => {
+                            return Err(MiniError::runtime("loop control escaped condition"))
+                        }
+                    };
+                    if cond != Value::Bool(true) {
+                        break;
+                    }
                     match self.eval_block(body)? {
                         Flow::Value(_) | Flow::Continue => {}
                         Flow::Break => break,
@@ -774,7 +802,13 @@ impl<'a> Interpreter<'a> {
                 body,
                 ..
             } => {
-                let iterable = self.eval_expr(iterable)?;
+                let iterable = match self.eval_expr_with_try(iterable)? {
+                    Flow::Value(value) => value,
+                    flow @ Flow::Return(_) => return Ok(flow),
+                    Flow::Break | Flow::Continue => {
+                        return Err(MiniError::runtime("loop control escaped iterable"))
+                    }
+                };
                 let items = match iterable {
                     Value::Array(items) | Value::Vec(items) => items,
                     Value::String(text) => text
@@ -1231,6 +1265,88 @@ impl<'a> Interpreter<'a> {
                     .value
                     .clone())
             }
+            Expression::Try { expr, .. } => {
+                let value = match self.eval_expr_with_try(expr)? {
+                    Flow::Value(value) => value,
+                    Flow::Return(_) => return Err(MiniError::runtime(
+                        "`?` early return is only supported in statement and block-tail positions",
+                    )),
+                    Flow::Break | Flow::Continue => {
+                        return Err(MiniError::runtime("loop control escaped `?` expression"))
+                    }
+                };
+                match self.apply_try(value)? {
+                    Flow::Value(value) => Ok(value),
+                    Flow::Return(_) => Err(MiniError::runtime(
+                        "`?` early return is only supported in statement and block-tail positions",
+                    )),
+                    Flow::Break | Flow::Continue => {
+                        Err(MiniError::runtime("loop control escaped `?` expression"))
+                    }
+                }
+            }
+        }
+    }
+
+    fn eval_expr_with_try(&mut self, expr: &Expression) -> Result<Flow> {
+        match expr {
+            Expression::Try { expr, .. } => {
+                let value = match self.eval_expr_with_try(expr)? {
+                    Flow::Value(value) => value,
+                    flow @ (Flow::Return(_) | Flow::Break | Flow::Continue) => return Ok(flow),
+                };
+                self.apply_try(value)
+            }
+            _ => Ok(Flow::Value(self.eval_expr(expr)?)),
+        }
+    }
+
+    fn apply_try(&mut self, value: Value) -> Result<Flow> {
+        match value {
+            Value::Enum {
+                enum_name,
+                variant,
+                value,
+            } if enum_name == "Result" && variant == "Ok" => {
+                let Some(value) = value else {
+                    return Err(MiniError::runtime("Result::Ok used with `?` needs payload"));
+                };
+                Ok(Flow::Value(*value))
+            }
+            Value::Enum {
+                enum_name,
+                variant,
+                value,
+            } if enum_name == "Result" && variant == "Err" => Ok(Flow::Return(Value::Enum {
+                enum_name,
+                variant,
+                value,
+            })),
+            Value::Enum {
+                enum_name,
+                variant,
+                value,
+            } if enum_name == "Option" && variant == "Some" => {
+                let Some(value) = value else {
+                    return Err(MiniError::runtime(
+                        "Option::Some used with `?` needs payload",
+                    ));
+                };
+                Ok(Flow::Value(*value))
+            }
+            Value::Enum {
+                enum_name,
+                variant,
+                value,
+            } if enum_name == "Option" && variant == "None" => Ok(Flow::Return(Value::Enum {
+                enum_name,
+                variant,
+                value,
+            })),
+            other => Err(MiniError::runtime(format!(
+                "`?` expects Option or Result, found `{}`",
+                other
+            ))),
         }
     }
 
@@ -1243,7 +1359,14 @@ impl<'a> Interpreter<'a> {
                 else_block,
                 ..
             } => {
-                if self.eval_expr(condition)? == Value::Bool(true) {
+                let condition = match self.eval_expr_with_try(condition)? {
+                    Flow::Value(value) => value,
+                    flow @ Flow::Return(_) => return Ok(flow),
+                    Flow::Break | Flow::Continue => {
+                        return Err(MiniError::runtime("loop control escaped if condition"))
+                    }
+                };
+                if condition == Value::Bool(true) {
                     self.eval_block(then_block)
                 } else if let Some(block) = else_block {
                     self.eval_block(block)
@@ -1251,7 +1374,7 @@ impl<'a> Interpreter<'a> {
                     Ok(Flow::Value(Value::Unit))
                 }
             }
-            _ => Ok(Flow::Value(self.eval_expr(expr)?)),
+            _ => self.eval_expr_with_try(expr),
         }
     }
 

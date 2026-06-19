@@ -501,6 +501,7 @@ fn checks_all_success_examples() {
         "examples/functions.rmini",
         "examples/borrow_ok.rmini",
         "examples/lifetimes.rmini",
+        "examples/question_operator.rmini",
         "examples/control_flow.rmini",
         "examples/loop_control.rmini",
         "examples/data_types.rmini",
@@ -714,6 +715,28 @@ fn runs_mutable_reference_call() {
 fn runs_named_lifetime_reference_params() {
     let source = include_str!("../examples/lifetimes.rmini");
     assert_eq!(parse_check_run(source), vec!["&hp", "15"]);
+}
+
+#[test]
+fn runs_question_operator_for_result_and_option() {
+    let source = include_str!("../examples/question_operator.rmini");
+    assert_eq!(
+        parse_check_run(source),
+        vec![
+            "Result::Ok(6)",
+            "Result::Err(cannot parse `nope` as i64)",
+            "Option::Some(7)",
+            "Option::None",
+        ]
+    );
+}
+
+#[test]
+fn rejects_question_on_plain_value() {
+    let tokens = Lexer::new("fn main(){ let x: i64 = 5?; }").lex().unwrap();
+    let program = Parser::new(tokens).parse_program().unwrap();
+    let err = TypeChecker::new(&program).check().unwrap_err().to_string();
+    assert!(err.contains("`?` expects Option or Result"));
 }
 
 #[test]

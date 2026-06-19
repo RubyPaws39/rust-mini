@@ -1,0 +1,29 @@
+fn parse_score(text: String) -> Result<i64, String> {
+    let value: i64 = parse_i64(text)?;
+    return Result::Ok(value + 1);
+}
+
+fn failed_score() -> Result<i64, String> {
+    let value: i64 = parse_i64("nope")?;
+    return Result::Ok(value);
+}
+
+fn first_item() -> Option<i64> {
+    let mut xs: Vec<i64> = vec![7];
+    let value: i64 = xs.pop()?;
+    return Option::Some(value);
+}
+
+fn missing_item() -> Option<i64> {
+    let mut xs: Vec<i64> = vec![7];
+    let first: i64 = xs.pop()?;
+    let second: i64 = xs.pop()?;
+    return Option::Some(first + second);
+}
+
+fn main() {
+    print(parse_score("5"));
+    print(failed_score());
+    print(first_item());
+    print(missing_item());
+}

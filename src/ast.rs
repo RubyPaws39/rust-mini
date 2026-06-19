@@ -304,6 +304,10 @@ pub enum Expression {
         expr: Box<Expression>,
         span: Span,
     },
+    Try {
+        expr: Box<Expression>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -347,7 +351,8 @@ impl Expression {
             | Expression::If { span, .. }
             | Expression::Match { span, .. }
             | Expression::Ref { span, .. }
-            | Expression::Deref { span, .. } => *span,
+            | Expression::Deref { span, .. }
+            | Expression::Try { span, .. } => *span,
             Expression::Block(block) => block.span,
         }
     }

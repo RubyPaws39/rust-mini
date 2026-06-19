@@ -64,6 +64,7 @@ pub enum TokenKind {
     OrOr,
     Bang,
     Amp,
+    Question,
     Eof,
 }
 

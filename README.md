@@ -73,6 +73,7 @@ Supported core syntax:
 - ranges: `for i in 0..10`
 - `break`, `continue`
 - `return`
+- `?` error propagation for `Option<T>` and `Result<T, E>`
 - assignment
 - index assignment: `xs[0] = 10`
 - field assignment: `player.hp = 9`
@@ -221,6 +222,7 @@ cargo run -- examples\math.rmini
 cargo run -- examples\functions.rmini
 cargo run -- examples\borrow_ok.rmini
 cargo run -- examples\lifetimes.rmini
+cargo run -- examples\question_operator.rmini
 cargo run -- examples\control_flow.rmini
 cargo run -- examples\data_types.rmini
 cargo run -- examples\vecs.rmini

@@ -422,6 +422,15 @@ fn main() {
 }
 ```
 
+Use `?` to return early from `Result::Err` or `Option::None`:
+
+```rust
+fn parse_score(text: String) -> Result<i64, String> {
+    let value: i64 = parse_i64(text)?;
+    return Result::Ok(value + 1);
+}
+```
+
 ## 18. References
 
 ```rust
@@ -618,6 +627,7 @@ fn main() {
 ```powershell
 cargo run -- examples\interactive_calculator.rmini
 cargo run -- examples\lifetimes.rmini
+cargo run -- examples\question_operator.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
 cargo run -- examples\chess_prototype.rmini
@@ -649,7 +659,6 @@ Missing or incomplete:
 - non-lexical lifetimes
 - closures
 - full macro system
-- Rust's `?` error-propagation operator is not supported yet; use `match` or `.unwrap_or(...)`
 - full pattern matching
 - destructuring `let`
 - real crate/package manager
