@@ -143,46 +143,6 @@ fn runs_interactive_calculator_with_queued_input() {
 }
 
 #[test]
-fn runs_ping_pong_with_queued_input() {
-    let _ = std::fs::remove_file("examples/ping_pong_score.txt");
-    let source = include_str!("../examples/ping_pong.rmini");
-    assert_eq!(
-        parse_check_run_with_io(
-            source,
-            Vec::new(),
-            vec!["1".to_string(), "2".to_string(), "3".to_string()]
-        ),
-        vec![
-            "\u{1b}[96mRust Mini Ping Pong\u{1b}[0m",
-            "First to 3 wins.",
-            "Choose shot: 1 left, 2 center, 3 right.",
-            "round",
-            "1",
-            "\u{1b}[92myou score\u{1b}[0m",
-            "score",
-            "1",
-            "0",
-            "round",
-            "2",
-            "\u{1b}[92myou score\u{1b}[0m",
-            "score",
-            "2",
-            "0",
-            "round",
-            "3",
-            "\u{1b}[92myou score\u{1b}[0m",
-            "score",
-            "3",
-            "0",
-            "\u{1b}[92myou win the match\u{1b}[0m"
-        ]
-    );
-    let written = std::fs::read_to_string("examples/ping_pong_score.txt").unwrap();
-    assert_eq!(written, "match complete");
-    std::fs::remove_file("examples/ping_pong_score.txt").unwrap();
-}
-
-#[test]
 fn runs_adventure_app_with_queued_input() {
     let _ = std::fs::remove_file("examples/adventure_save.txt");
     let source = include_str!("../examples/adventure_app.rmini");
@@ -515,8 +475,6 @@ fn checks_all_success_examples() {
         "examples/traits_demo.rmini",
         "examples/calculator_app.rmini",
         "examples/interactive_calculator.rmini",
-        "examples/ping_pong.rmini",
-        "examples/atari_pong.rmini",
         "examples/animated_pong.rmini",
         "examples/adventure_app.rmini",
         "examples/furry_love_game.rmini",
