@@ -72,6 +72,37 @@ fn bytecode_runs_core_programs() {
     );
 }
 #[test]
+fn bytecode_runs_string_builtins_and_methods() {
+    let source = r#"
+fn main() {
+    let text: String = "  Rust Mini  ";
+    let clean: String = text.trim();
+    let loud: String = clean.to_uppercase();
+    let soft: String = loud.to_lowercase();
+    let renamed: String = soft.replace("rust", "ruby");
+    let message: String = format!("{} has {} chars", renamed, renamed.len());
+
+    println!("{}", message);
+    print(concat("hi ", "there"));
+    print(contains(renamed, "ruby"));
+    print(renamed.contains("mini"));
+    print(renamed.starts_with("ruby"));
+    print(renamed.ends_with("mini"));
+}
+"#;
+    assert_eq!(
+        parse_check_run_vm(source),
+        vec![
+            "ruby mini has 9 chars",
+            "hi there",
+            "true",
+            "true",
+            "true",
+            "true"
+        ]
+    );
+}
+#[test]
 fn runs_control_flow() {
     let source = include_str!("../examples/control_flow.rmini");
     assert_eq!(parse_check_run(source), vec!["10"]);

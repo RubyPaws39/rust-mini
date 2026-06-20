@@ -125,6 +125,8 @@ rmini --vm examples\hello.rmini
 
 Rust Mini now has a bytecode MVP for core scripts. Normal runs try bytecode first and fall back to the AST interpreter when a feature is not lowered yet.
 
+Current VM coverage includes integer and boolean math, control flow, function calls, string literals, string concatenation, `len`, `concat`, `contains`, `format!`, `print!`, `println!`, and pure string methods like `.trim()`, `.to_uppercase()`, `.replace()`, `.contains()`, `.starts_with()`, and `.ends_with()`.
+
 Force bytecode:
 
 ```powershell

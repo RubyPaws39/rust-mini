@@ -38,6 +38,7 @@ pub enum Instruction {
     Jump(usize),
     JumpIfFalse(usize),
     Call { name: String, argc: usize },
+    MethodCall { name: String, argc: usize },
     Return,
 }
 
@@ -230,6 +231,22 @@ impl<'a> FunctionCompiler<'a> {
                 });
                 Ok(())
             }
+            Expression::MethodCall {
+                receiver,
+                name,
+                args,
+                ..
+            } => {
+                self.compile_expr(receiver)?;
+                for arg in args {
+                    self.compile_expr(arg)?;
+                }
+                self.instructions.push(Instruction::MethodCall {
+                    name: name.clone(),
+                    argc: args.len(),
+                });
+                Ok(())
+            }
             Expression::If {
                 condition,
                 then_block,
@@ -258,7 +275,6 @@ impl<'a> FunctionCompiler<'a> {
             | Expression::Array(_, _)
             | Expression::Vec(_, _)
             | Expression::Range { .. }
-            | Expression::MethodCall { .. }
             | Expression::StructLiteral { .. }
             | Expression::EnumLiteral { .. }
             | Expression::Index { .. }
@@ -367,16 +383,63 @@ impl<'a> BytecodeVm<'a> {
     }
 
     fn call_function(&mut self, name: &str, args: Vec<Value>) -> Result<Value> {
-        if name == "print" {
-            if args.len() != 1 {
-                return Err(MiniError::runtime("function `print` expects 1 argument"));
+        match name {
+            "print" => {
+                if args.len() != 1 {
+                    return Err(MiniError::runtime("function `print` expects 1 argument"));
+                }
+                self.write_output(args[0].to_string());
+                return Ok(Value::Unit);
             }
-            if self.live_output {
-                println!("{}", args[0]);
-            } else {
-                self.output.push(args[0].to_string());
+            "len" => {
+                if args.len() != 1 {
+                    return Err(MiniError::runtime("function `len` expects 1 argument"));
+                }
+                return value_len(&args[0]);
             }
-            return Ok(Value::Unit);
+            "concat" => {
+                if args.len() != 2 {
+                    return Err(MiniError::runtime("function `concat` expects 2 arguments"));
+                }
+                let Value::String(left) = &args[0] else {
+                    return Err(MiniError::runtime(
+                        "function `concat` expects String left value",
+                    ));
+                };
+                let Value::String(right) = &args[1] else {
+                    return Err(MiniError::runtime(
+                        "function `concat` expects String right value",
+                    ));
+                };
+                return Ok(Value::String(format!("{}{}", left, right)));
+            }
+            "contains" => {
+                if args.len() != 2 {
+                    return Err(MiniError::runtime(
+                        "function `contains` expects 2 arguments",
+                    ));
+                }
+                let Value::String(haystack) = &args[0] else {
+                    return Err(MiniError::runtime(
+                        "function `contains` expects String haystack",
+                    ));
+                };
+                let Value::String(needle) = &args[1] else {
+                    return Err(MiniError::runtime(
+                        "function `contains` expects String needle",
+                    ));
+                };
+                return Ok(Value::Bool(haystack.contains(needle)));
+            }
+            "__format_macro" | "__print_macro" | "__println_macro" => {
+                let text = format_macro_values(&args)?;
+                if name == "__format_macro" {
+                    return Ok(Value::String(text));
+                }
+                self.write_output(text);
+                return Ok(Value::Unit);
+            }
+            _ => {}
         }
         let function = self
             .program
@@ -395,6 +458,14 @@ impl<'a> BytecodeVm<'a> {
             frame[idx] = arg;
         }
         self.run_function(function, frame)
+    }
+
+    fn write_output(&mut self, text: String) {
+        if self.live_output {
+            println!("{}", text);
+        } else {
+            self.output.push(text);
+        }
     }
 
     fn run_function(
@@ -438,13 +509,15 @@ impl<'a> BytecodeVm<'a> {
                     }
                 }
                 Instruction::Call { name, argc } => {
-                    let mut args = Vec::new();
-                    for _ in 0..*argc {
-                        args.push(pop_stack(&mut stack)?);
-                    }
-                    args.reverse();
+                    let args = pop_args(&mut stack, *argc)?;
                     let value = self.call_function(name, args)?;
                     stack.push(value);
+                    ip += 1;
+                }
+                Instruction::MethodCall { name, argc } => {
+                    let args = pop_args(&mut stack, *argc)?;
+                    let receiver = pop_stack(&mut stack)?;
+                    stack.push(eval_method(name, receiver, args)?);
                     ip += 1;
                 }
                 Instruction::Return => return Ok(stack.pop().unwrap_or(Value::Unit)),
@@ -467,6 +540,144 @@ fn pop_stack(stack: &mut Vec<Value>) -> Result<Value> {
     stack
         .pop()
         .ok_or_else(|| MiniError::runtime("bytecode stack underflow"))
+}
+
+fn pop_args(stack: &mut Vec<Value>, argc: usize) -> Result<Vec<Value>> {
+    let mut args = Vec::new();
+    for _ in 0..argc {
+        args.push(pop_stack(stack)?);
+    }
+    args.reverse();
+    Ok(args)
+}
+
+fn value_len(value: &Value) -> Result<Value> {
+    match value {
+        Value::String(text) => Ok(Value::Int(text.chars().count() as i64)),
+        Value::Array(items) | Value::Vec(items) => Ok(Value::Int(items.len() as i64)),
+        _ => Err(MiniError::runtime(
+            "function `len` expects String, array, or vec",
+        )),
+    }
+}
+
+fn eval_method(name: &str, receiver: Value, args: Vec<Value>) -> Result<Value> {
+    match name {
+        "len" if args.is_empty() => value_len(&receiver),
+        "trim" if args.is_empty() => match receiver {
+            Value::String(text) => Ok(Value::String(text.trim().to_string())),
+            _ => Err(MiniError::runtime("method `trim` expects String")),
+        },
+        "to_lowercase" if args.is_empty() => match receiver {
+            Value::String(text) => Ok(Value::String(text.to_lowercase())),
+            _ => Err(MiniError::runtime("method `to_lowercase` expects String")),
+        },
+        "to_uppercase" if args.is_empty() => match receiver {
+            Value::String(text) => Ok(Value::String(text.to_uppercase())),
+            _ => Err(MiniError::runtime("method `to_uppercase` expects String")),
+        },
+        "contains" | "starts_with" | "ends_with" => {
+            if args.len() != 1 {
+                return Err(MiniError::runtime(format!(
+                    "method `{}` expects 1 argument",
+                    name
+                )));
+            }
+            let Value::String(text) = receiver else {
+                return Err(MiniError::runtime(format!(
+                    "method `{}` expects String receiver",
+                    name
+                )));
+            };
+            let Value::String(needle) = &args[0] else {
+                return Err(MiniError::runtime(format!(
+                    "method `{}` expects String argument",
+                    name
+                )));
+            };
+            Ok(Value::Bool(match name {
+                "contains" => text.contains(needle),
+                "starts_with" => text.starts_with(needle),
+                "ends_with" => text.ends_with(needle),
+                _ => unreachable!(),
+            }))
+        }
+        "replace" => {
+            if args.len() != 2 {
+                return Err(MiniError::runtime("method `replace` expects 2 arguments"));
+            }
+            let Value::String(text) = receiver else {
+                return Err(MiniError::runtime(
+                    "method `replace` expects String receiver",
+                ));
+            };
+            let Value::String(from) = &args[0] else {
+                return Err(MiniError::runtime(
+                    "method `replace` expects String pattern",
+                ));
+            };
+            let Value::String(to) = &args[1] else {
+                return Err(MiniError::runtime(
+                    "method `replace` expects String replacement",
+                ));
+            };
+            Ok(Value::String(text.replace(from, to)))
+        }
+        _ => Err(MiniError::runtime(format!(
+            "bytecode method `{}` unsupported",
+            name
+        ))),
+    }
+}
+
+fn format_macro_values(args: &[Value]) -> Result<String> {
+    let Some(Value::String(template)) = args.first() else {
+        return Err(MiniError::runtime(
+            "formatting macro expects a String format literal",
+        ));
+    };
+    let values = args
+        .iter()
+        .skip(1)
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let mut value_index = 0usize;
+    let mut out = String::new();
+    let mut chars = template.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '{' {
+            if chars.peek() == Some(&'{') {
+                chars.next();
+                out.push('{');
+            } else if chars.peek() == Some(&'}') {
+                chars.next();
+                let value = values.get(value_index).ok_or_else(|| {
+                    MiniError::runtime("formatting macro has more `{}` slots than values")
+                })?;
+                out.push_str(value);
+                value_index += 1;
+            } else {
+                return Err(MiniError::runtime(
+                    "formatting macro only supports `{}` placeholders",
+                ));
+            }
+        } else if ch == '}' {
+            if chars.peek() == Some(&'}') {
+                chars.next();
+                out.push('}');
+            } else {
+                return Err(MiniError::runtime("unmatched `}` in format string"));
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    if value_index != values.len() {
+        return Err(MiniError::runtime(
+            "formatting macro has more values than `{}` slots",
+        ));
+    }
+    Ok(out)
 }
 
 fn eval_binary(op: ByteBinaryOp, left: Value, right: Value) -> Result<Value> {
