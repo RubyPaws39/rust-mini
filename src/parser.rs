@@ -636,7 +636,7 @@ impl Parser {
     fn parse_let(&mut self) -> Result<Statement> {
         let span = self.expect_simple(TokenKind::Let, "expected `let`")?;
         let mutable = self.eat(&TokenKind::Mut);
-        let name = self.expect_ident("expected variable name after `let`")?;
+        let pattern = self.parse_let_pattern()?;
         let ty = if self.eat(&TokenKind::Colon) {
             Some(self.parse_type()?)
         } else {
@@ -646,12 +646,45 @@ impl Parser {
         let value = self.parse_expression()?;
         self.expect_simple(TokenKind::Semi, "expected `;` after let statement")?;
         Ok(Statement::Let {
-            name,
+            pattern,
             mutable,
             ty,
             value,
             span,
         })
+    }
+
+    fn parse_let_pattern(&mut self) -> Result<LetPattern> {
+        if self.eat(&TokenKind::LParen) {
+            if self.eat(&TokenKind::RParen) {
+                return Ok(LetPattern::Unit);
+            }
+            let mut patterns = Vec::new();
+            let mut saw_comma = false;
+            loop {
+                patterns.push(self.parse_let_pattern()?);
+                if !self.eat(&TokenKind::Comma) {
+                    break;
+                }
+                saw_comma = true;
+                if self.at(&TokenKind::RParen) {
+                    break;
+                }
+            }
+            self.expect_simple(TokenKind::RParen, "expected `)` after let pattern")?;
+            if patterns.len() == 1 && !saw_comma {
+                Ok(patterns.remove(0))
+            } else {
+                Ok(LetPattern::Tuple(patterns))
+            }
+        } else {
+            let name = self.expect_ident("expected variable name or pattern after `let`")?;
+            if name == "_" {
+                Ok(LetPattern::Wildcard)
+            } else {
+                Ok(LetPattern::Ident(name))
+            }
+        }
     }
 
     fn parse_return(&mut self) -> Result<Statement> {

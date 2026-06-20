@@ -1,0 +1,16 @@
+fn pair() -> (i64, i64) {
+    return (2, 3);
+}
+
+fn main() {
+    let (x, y): (i64, i64) = pair();
+    print(x + y);
+
+    let mut (a, b) = (10, 20);
+    a = a + 1;
+    b = b + 2;
+    print(a + b);
+
+    let (_, keep) = (99, 7);
+    print(keep);
+}

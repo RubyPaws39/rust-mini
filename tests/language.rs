@@ -461,6 +461,7 @@ fn checks_all_success_examples() {
         "examples/functions.rmini",
         "examples/borrow_ok.rmini",
         "examples/lifetimes.rmini",
+        "examples/destructuring.rmini",
         "examples/question_operator.rmini",
         "examples/control_flow.rmini",
         "examples/loop_control.rmini",
@@ -667,6 +668,22 @@ fn runs_function_call_and_return() {
 fn runs_mutable_reference_call() {
     let source = include_str!("../examples/borrow_ok.rmini");
     assert_eq!(parse_check_run(source), vec!["9"]);
+}
+
+#[test]
+fn runs_destructuring_let() {
+    let source = include_str!("../examples/destructuring.rmini");
+    assert_eq!(parse_check_run(source), vec!["5", "33", "7"]);
+}
+
+#[test]
+fn rejects_destructuring_tuple_arity_mismatch() {
+    let tokens = Lexer::new("fn main(){ let (a, b) = (1, 2, 3); }")
+        .lex()
+        .unwrap();
+    let program = Parser::new(tokens).parse_program().unwrap();
+    let err = TypeChecker::new(&program).check().unwrap_err().to_string();
+    assert!(err.contains("tuple pattern has 2 fields, value has 3"));
 }
 
 #[test]

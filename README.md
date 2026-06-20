@@ -63,6 +63,7 @@ Supported core syntax:
 - arrays: `[i64; 3]`, `[1, 2, 3]`
 - vectors: `Vec<i64>`, `vec![1, 2, 3]`
 - tuples: `(i64, bool)`, `(1, true)`
+- destructuring `let`: `let (a, b) = pair;`
 - blocks and tail expressions
 - `if`, `else`, `else if`
 - `while`
@@ -222,6 +223,7 @@ cargo run -- examples\math.rmini
 cargo run -- examples\functions.rmini
 cargo run -- examples\borrow_ok.rmini
 cargo run -- examples\lifetimes.rmini
+cargo run -- examples\destructuring.rmini
 cargo run -- examples\question_operator.rmini
 cargo run -- examples\control_flow.rmini
 cargo run -- examples\data_types.rmini
@@ -312,7 +314,6 @@ Missing or incomplete:
 - full macro system
 - Rust's `?` error-propagation operator is not supported yet; use `match` or `.unwrap_or(...)`
 - full pattern matching
-- destructuring `let`
 - real crate/package manager
 - full module privacy
 - threads and async
@@ -437,3 +438,5 @@ Best way to help:
 ## License
 
 License not chosen yet. Pick one before publishing broadly, usually MIT or Apache-2.0 for open source Rust projects.
+
+

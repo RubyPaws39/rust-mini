@@ -107,6 +107,63 @@ impl<'a> BorrowChecker<'a> {
         Ok(())
     }
 
+    fn bind_let_pattern(
+        &self,
+        pattern: &LetPattern,
+        ty: &Type,
+        mutable: bool,
+        env: &mut Vec<HashMap<String, VarState>>,
+        span: Span,
+    ) -> Result<()> {
+        match pattern {
+            LetPattern::Ident(name) => {
+                env.last_mut().unwrap().insert(
+                    name.clone(),
+                    VarState {
+                        ty: ty.clone(),
+                        mutable,
+                        moved: false,
+                        immut_borrows: 0,
+                        mut_borrowed: false,
+                    },
+                );
+                Ok(())
+            }
+            LetPattern::Wildcard => Ok(()),
+            LetPattern::Unit => {
+                if *ty == Type::Unit {
+                    Ok(())
+                } else {
+                    Err(MiniError::borrow(
+                        format!("unit pattern expects unit value, found `{:?}`", ty),
+                        Some(span),
+                    ))
+                }
+            }
+            LetPattern::Tuple(items) => {
+                let Type::Tuple(types) = ty else {
+                    return Err(MiniError::borrow(
+                        format!("tuple pattern expects tuple value, found `{:?}`", ty),
+                        Some(span),
+                    ));
+                };
+                if items.len() != types.len() {
+                    return Err(MiniError::borrow(
+                        format!(
+                            "tuple pattern has {} fields, value has {}",
+                            items.len(),
+                            types.len()
+                        ),
+                        Some(span),
+                    ));
+                }
+                for (item, item_ty) in items.iter().zip(types) {
+                    self.bind_let_pattern(item, item_ty, mutable, env, span)?;
+                }
+                Ok(())
+            }
+        }
+    }
     fn check_statement(
         &self,
         stmt: &Statement,
@@ -115,7 +172,7 @@ impl<'a> BorrowChecker<'a> {
     ) -> Result<()> {
         match stmt {
             Statement::Let {
-                name,
+                pattern,
                 mutable,
                 ty,
                 value,
@@ -126,22 +183,7 @@ impl<'a> BorrowChecker<'a> {
                 if let Some(loan) = effect.loan.clone() {
                     scope_loans.push(loan);
                 }
-                env.last_mut().unwrap().insert(
-                    name.clone(),
-                    VarState {
-                        ty: final_ty,
-                        mutable: *mutable,
-                        moved: false,
-                        immut_borrows: 0,
-                        mut_borrowed: false,
-                    },
-                );
-                if env.last().unwrap().get(name).is_none() {
-                    return Err(MiniError::borrow(
-                        format!("failed to bind `{}`", name),
-                        Some(*span),
-                    ));
-                }
+                self.bind_let_pattern(pattern, &final_ty, *mutable, env, *span)?;
             }
             Statement::Assign {
                 target,

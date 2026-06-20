@@ -185,7 +185,7 @@ pub struct Block {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Let {
-        name: String,
+        pattern: LetPattern,
         mutable: bool,
         ty: Option<Type>,
         value: Expression,
@@ -222,6 +222,14 @@ pub enum Statement {
         body: Block,
         span: Span,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LetPattern {
+    Ident(String),
+    Tuple(Vec<LetPattern>),
+    Unit,
+    Wildcard,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

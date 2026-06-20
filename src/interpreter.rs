@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::error::{MiniError, Result};
+use crate::error::{MiniError, Result, Span};
 use crate::value::{RefValue, Value};
 use std::collections::{HashMap, VecDeque};
 use std::env;
@@ -712,12 +712,57 @@ impl<'a> Interpreter<'a> {
         Ok(flow)
     }
 
+    fn bind_let_pattern(
+        &mut self,
+        pattern: &LetPattern,
+        value: Value,
+        mutable: bool,
+        span: Span,
+    ) -> Result<()> {
+        match pattern {
+            LetPattern::Ident(name) => {
+                self.frames
+                    .last_mut()
+                    .unwrap()
+                    .insert(name.clone(), RuntimeVar { value, mutable });
+                Ok(())
+            }
+            LetPattern::Wildcard => Ok(()),
+            LetPattern::Unit => {
+                if value == Value::Unit {
+                    Ok(())
+                } else {
+                    Err(MiniError::runtime(format!(
+                        "unit pattern expects unit value, found `{}`",
+                        value
+                    )))
+                }
+            }
+            LetPattern::Tuple(patterns) => {
+                let Value::Tuple(values) = value else {
+                    return Err(MiniError::runtime("tuple pattern expects tuple value"));
+                };
+                if patterns.len() != values.len() {
+                    return Err(MiniError::runtime(format!(
+                        "tuple pattern has {} fields, value has {}",
+                        patterns.len(),
+                        values.len()
+                    )));
+                }
+                for (pattern, value) in patterns.iter().zip(values) {
+                    self.bind_let_pattern(pattern, value, mutable, span)?;
+                }
+                Ok(())
+            }
+        }
+    }
     fn eval_statement(&mut self, stmt: &Statement) -> Result<Flow> {
         match stmt {
             Statement::Let {
-                name,
+                pattern,
                 mutable,
                 value,
+                span,
                 ..
             } => {
                 let value = match self.eval_expr_with_try(value)? {
@@ -727,13 +772,7 @@ impl<'a> Interpreter<'a> {
                         return Err(MiniError::runtime("loop control escaped let expression"))
                     }
                 };
-                self.frames.last_mut().unwrap().insert(
-                    name.clone(),
-                    RuntimeVar {
-                        value,
-                        mutable: *mutable,
-                    },
-                );
+                self.bind_let_pattern(pattern, value, *mutable, *span)?;
                 Ok(Flow::Value(Value::Unit))
             }
             Statement::Assign { target, value, .. } => {

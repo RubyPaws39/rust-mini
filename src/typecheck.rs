@@ -207,6 +207,51 @@ impl<'a> TypeChecker<'a> {
         Ok(ty)
     }
 
+    fn bind_let_pattern(
+        &self,
+        pattern: &LetPattern,
+        ty: &Type,
+        mutable: bool,
+        env: &mut Vec<HashMap<String, VarInfo>>,
+        span: Span,
+    ) -> Result<()> {
+        match pattern {
+            LetPattern::Ident(name) => {
+                env.last_mut().unwrap().insert(
+                    name.clone(),
+                    VarInfo {
+                        ty: ty.clone(),
+                        mutable,
+                    },
+                );
+                Ok(())
+            }
+            LetPattern::Wildcard => Ok(()),
+            LetPattern::Unit => self.expect_type(&Type::Unit, ty, Some(span)),
+            LetPattern::Tuple(items) => {
+                let Type::Tuple(types) = ty else {
+                    return Err(MiniError::type_error(
+                        format!("tuple pattern expects tuple value, found `{:?}`", ty),
+                        Some(span),
+                    ));
+                };
+                if items.len() != types.len() {
+                    return Err(MiniError::type_error(
+                        format!(
+                            "tuple pattern has {} fields, value has {}",
+                            items.len(),
+                            types.len()
+                        ),
+                        Some(span),
+                    ));
+                }
+                for (item, item_ty) in items.iter().zip(types) {
+                    self.bind_let_pattern(item, item_ty, mutable, env, span)?;
+                }
+                Ok(())
+            }
+        }
+    }
     fn check_statement(
         &self,
         statement: &Statement,
@@ -216,27 +261,21 @@ impl<'a> TypeChecker<'a> {
     ) -> Result<()> {
         match statement {
             Statement::Let {
-                name,
+                pattern,
                 mutable,
                 ty,
                 value,
                 span,
             } => {
                 let value_ty = self.check_expr(value, env, loop_depth)?;
-                if let Some(expected) = ty {
+                let binding_ty = if let Some(expected) = ty {
                     let expected = self.resolve_type(expected);
                     self.expect_type(&expected, &value_ty, Some(*span))?;
-                }
-                env.last_mut().unwrap().insert(
-                    name.clone(),
-                    VarInfo {
-                        ty: ty
-                            .as_ref()
-                            .map(|ty| self.resolve_type(ty))
-                            .unwrap_or(value_ty),
-                        mutable: *mutable,
-                    },
-                );
+                    expected
+                } else {
+                    value_ty
+                };
+                self.bind_let_pattern(pattern, &binding_ty, *mutable, env, *span)?;
             }
             Statement::Assign {
                 target,

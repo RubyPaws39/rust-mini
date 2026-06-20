@@ -284,6 +284,15 @@ fn main() {
 
 Tuple fields use numbers: `.0`, `.1`, `.2`.
 
+Destructure tuples with `let`:
+
+```rust
+fn main() {
+    let (x, y) = (2, 3);
+    println!("{}", x + y);
+}
+```
+
 ## 13. Structs
 
 ```rust
@@ -627,6 +636,7 @@ fn main() {
 ```powershell
 cargo run -- examples\interactive_calculator.rmini
 cargo run -- examples\lifetimes.rmini
+cargo run -- examples\destructuring.rmini
 cargo run -- examples\question_operator.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
@@ -660,7 +670,6 @@ Missing or incomplete:
 - closures
 - full macro system
 - full pattern matching
-- destructuring `let`
 - real crate/package manager
 - full module privacy
 - threads and async
@@ -669,3 +678,5 @@ Missing or incomplete:
 - GUI/window backend
 
 But Rust Mini can already write useful medium programs with Rust-style syntax, ownership, borrowing, structs, enums, match, methods, vectors, loops, formatting, standard helpers, and file I/O.
+
+
