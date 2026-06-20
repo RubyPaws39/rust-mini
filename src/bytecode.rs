@@ -39,6 +39,9 @@ pub enum Instruction {
     JumpIfFalse(usize),
     Call { name: String, argc: usize },
     MethodCall { name: String, argc: usize },
+    MakeArray(usize),
+    MakeVec(usize),
+    Index,
     Return,
 }
 
@@ -247,6 +250,26 @@ impl<'a> FunctionCompiler<'a> {
                 });
                 Ok(())
             }
+            Expression::Array(items, _) => {
+                for item in items {
+                    self.compile_expr(item)?;
+                }
+                self.instructions.push(Instruction::MakeArray(items.len()));
+                Ok(())
+            }
+            Expression::Vec(items, _) => {
+                for item in items {
+                    self.compile_expr(item)?;
+                }
+                self.instructions.push(Instruction::MakeVec(items.len()));
+                Ok(())
+            }
+            Expression::Index { target, index, .. } => {
+                self.compile_expr(target)?;
+                self.compile_expr(index)?;
+                self.instructions.push(Instruction::Index);
+                Ok(())
+            }
             Expression::If {
                 condition,
                 then_block,
@@ -272,12 +295,9 @@ impl<'a> FunctionCompiler<'a> {
             Expression::Unary { .. }
             | Expression::Float(_, _)
             | Expression::Tuple(_, _)
-            | Expression::Array(_, _)
-            | Expression::Vec(_, _)
             | Expression::Range { .. }
             | Expression::StructLiteral { .. }
             | Expression::EnumLiteral { .. }
-            | Expression::Index { .. }
             | Expression::Field { .. }
             | Expression::Match { .. }
             | Expression::Ref { .. }
@@ -520,6 +540,22 @@ impl<'a> BytecodeVm<'a> {
                     stack.push(eval_method(name, receiver, args)?);
                     ip += 1;
                 }
+                Instruction::MakeArray(count) => {
+                    let items = pop_args(&mut stack, *count)?;
+                    stack.push(Value::Array(items));
+                    ip += 1;
+                }
+                Instruction::MakeVec(count) => {
+                    let items = pop_args(&mut stack, *count)?;
+                    stack.push(Value::Vec(items));
+                    ip += 1;
+                }
+                Instruction::Index => {
+                    let index = pop_stack(&mut stack)?;
+                    let target = pop_stack(&mut stack)?;
+                    stack.push(eval_index(target, index)?);
+                    ip += 1;
+                }
                 Instruction::Return => return Ok(stack.pop().unwrap_or(Value::Unit)),
             }
         }
@@ -561,6 +597,29 @@ fn value_len(value: &Value) -> Result<Value> {
     }
 }
 
+fn eval_index(target: Value, index: Value) -> Result<Value> {
+    let Value::Int(index) = index else {
+        return Err(MiniError::runtime("bytecode index expects i64 index"));
+    };
+    if index < 0 {
+        return Err(MiniError::runtime("bytecode index cannot be negative"));
+    }
+    let index = index as usize;
+    match target {
+        Value::Array(items) | Value::Vec(items) => items
+            .get(index)
+            .cloned()
+            .ok_or_else(|| MiniError::runtime("bytecode index out of bounds")),
+        Value::String(text) => text
+            .chars()
+            .nth(index)
+            .map(|ch| Value::String(ch.to_string()))
+            .ok_or_else(|| MiniError::runtime("bytecode index out of bounds")),
+        _ => Err(MiniError::runtime(
+            "bytecode index expects array, vec, or String",
+        )),
+    }
+}
 fn eval_method(name: &str, receiver: Value, args: Vec<Value>) -> Result<Value> {
     match name {
         "len" if args.is_empty() => value_len(&receiver),

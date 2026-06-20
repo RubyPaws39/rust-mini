@@ -103,6 +103,21 @@ fn main() {
     );
 }
 #[test]
+fn bytecode_runs_arrays_vecs_and_indexing() {
+    let source = r#"
+fn main() {
+    let xs: [i64; 3] = [2, 4, 6];
+    let ys: Vec<i64> = vec![1, 3, 5];
+
+    print(len(xs));
+    print(xs[1]);
+    print(ys.len());
+    print(ys[2]);
+}
+"#;
+    assert_eq!(parse_check_run_vm(source), vec!["3", "4", "3", "5"]);
+}
+#[test]
 fn runs_control_flow() {
     let source = include_str!("../examples/control_flow.rmini");
     assert_eq!(parse_check_run(source), vec!["10"]);
