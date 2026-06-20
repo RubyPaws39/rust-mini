@@ -11,9 +11,9 @@ They are not scientific language shootout numbers. They are useful project stati
 - Rust Mini mode: release binary, full CLI pipeline
 - Rust Mini VM: bytecode MVP via `--vm`
 - Rust Mini AST: original AST interpreter via `--ast-run`
-- Python: Python 3.11
-- JavaScript: Node.js
-- Native Rust: `rustc -O`
+- Python: Python 3.11.8
+- JavaScript: Node.js 24.14.1
+- Native Rust: `rustc 1.95.0 -O`
 - Runs: 7 timed runs after one warm-up run
 - Timing tool: PowerShell `Measure-Command`
 
@@ -32,20 +32,27 @@ Lower is faster.
 
 | Benchmark | Language | Output | Min ms | Avg ms | Max ms |
 |---|---:|---:|---:|---:|---:|
-| `sum_loop` | Rust Mini VM | `19999900000` | 161.52 | 169.31 | 187.54 |
-| `sum_loop` | Rust Mini AST | `19999900000` | 281.32 | 291.53 | 299.14 |
-| `sum_loop` | Python 3.11 | `19999900000` | 93.64 | 105.07 | 126.84 |
-| `sum_loop` | Node.js | `19999900000` | 259.81 | 272.85 | 282.21 |
-| `sum_loop` | Native Rust | `19999900000` | 122.07 | 140.86 | 173.06 |
-| `fib24` | Rust Mini VM | `46368` | 182.99 | 190.72 | 197.82 |
-| `fib24` | Rust Mini AST | `46368` | 216.47 | 227.54 | 236.54 |
-| `fib24` | Python 3.11 | `46368` | 81.75 | 97.36 | 115.29 |
-| `fib24` | Node.js | `46368` | 259.29 | 281.41 | 319.59 |
-| `fib24` | Native Rust | `46368` | 112.33 | 123.98 | 135.88 |
+| `sum_loop` | Rust Mini VM | `19999900000` | 102.31 | 109.38 | 141.53 |
+| `sum_loop` | Rust Mini AST | `19999900000` | 208.65 | 214.35 | 220.82 |
+| `sum_loop` | Python 3.11.8 | `19999900000` | 50.92 | 53.21 | 54.78 |
+| `sum_loop` | Node.js 24.14.1 | `19999900000` | 192.55 | 198.41 | 204.38 |
+| `sum_loop` | Native Rust | `19999900000` | 71.13 | 75.19 | 79.99 |
+| `fib24` | Rust Mini VM | `46368` | 127.80 | 137.29 | 151.77 |
+| `fib24` | Rust Mini AST | `46368` | 165.08 | 172.68 | 185.88 |
+| `fib24` | Python 3.11.8 | `46368` | 39.88 | 40.72 | 42.02 |
+| `fib24` | Node.js 24.14.1 | `46368` | 190.84 | 198.01 | 211.71 |
+| `fib24` | Native Rust | `46368` | 72.31 | 76.05 | 82.60 |
+
+## VM Speedup
+
+| Benchmark | VM vs AST | VM vs Node.js | VM vs Python | VM vs Native Rust |
+|---|---:|---:|---:|---:|
+| `sum_loop` | 1.96x faster | 1.81x faster | 2.06x slower | 1.45x slower |
+| `fib24` | 1.26x faster | 1.44x faster | 3.37x slower | 1.81x slower |
 
 ## Takeaways
 
-Rust Mini now has a bytecode MVP. On these tests, VM mode is faster than the original AST interpreter.
+Rust Mini now has a bytecode MVP. On these tests, VM mode is faster than the original AST interpreter and faster than Node.js for these tiny command-line runs.
 
 Python is faster on these two tests because CPython has mature bytecode execution and highly optimized startup/runtime paths.
 
@@ -54,7 +61,6 @@ Native Rust is faster than Rust Mini, as expected, but these measurements includ
 Rust Mini still falls back to the AST interpreter for unsupported features. Future speed work:
 
 - cache parsed modules
-- add bytecode
 - skip checker passes in release script mode when requested
 - optimize variable lookup
 - optimize function calls
@@ -78,7 +84,7 @@ rustc -O benchmarks\fib.rs -o benchmarks\fib_rust.exe
 Run Rust Mini benchmarks:
 
 ```powershell
-target\release\rust_mini.exe benchmarks\sum_loop.rmini
-target\release\rust_mini.exe benchmarks\fib.rmini
+target\release\rmini.exe --vm benchmarks\sum_loop.rmini
+target\release\rmini.exe --vm benchmarks\fib.rmini
 ```
 
