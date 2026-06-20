@@ -1150,36 +1150,70 @@ impl Parser {
     }
 
     fn parse_pattern(&mut self) -> Result<Pattern> {
-        if let TokenKind::Ident(name) = self.current().kind.clone() {
-            let span = self.current().span;
-            self.advance();
-            if name == "_" {
-                return Ok(Pattern::Wildcard);
+        let token = self.current().clone();
+        match token.kind {
+            TokenKind::Int(value) => {
+                self.advance();
+                Ok(Pattern::Int(value))
             }
-            if !self.eat_path_sep() {
-                return Err(MiniError::parse("expected `::` in enum pattern", span));
+            TokenKind::String(value) => {
+                self.advance();
+                Ok(Pattern::String(value))
             }
-            let variant = self.expect_ident("expected enum variant in pattern")?;
-            let binding = if self.eat(&TokenKind::LParen) {
-                let binding = self.expect_ident("expected binding name in enum pattern")?;
-                self.expect_simple(TokenKind::RParen, "expected `)` after enum pattern binding")?;
-                Some(binding)
-            } else {
-                None
-            };
-            Ok(Pattern::EnumVariant {
-                enum_name: name,
-                variant,
-                binding,
-            })
-        } else {
-            Err(MiniError::parse(
-                "expected match pattern",
-                self.current().span,
-            ))
+            TokenKind::True => {
+                self.advance();
+                Ok(Pattern::Bool(true))
+            }
+            TokenKind::False => {
+                self.advance();
+                Ok(Pattern::Bool(false))
+            }
+            TokenKind::LParen => {
+                self.advance();
+                if self.eat(&TokenKind::RParen) {
+                    return Ok(Pattern::Unit);
+                }
+                let mut patterns = Vec::new();
+                loop {
+                    patterns.push(self.parse_pattern()?);
+                    if !self.eat(&TokenKind::Comma) {
+                        break;
+                    }
+                    if self.at(&TokenKind::RParen) {
+                        break;
+                    }
+                }
+                self.expect_simple(TokenKind::RParen, "expected `)` after pattern")?;
+                Ok(Pattern::Tuple(patterns))
+            }
+            TokenKind::Ident(name) => {
+                self.advance();
+                if name == "_" {
+                    return Ok(Pattern::Wildcard);
+                }
+                if !self.eat_path_sep() {
+                    return Ok(Pattern::Binding(name));
+                }
+                let variant = self.expect_ident("expected enum variant in pattern")?;
+                let binding = if self.eat(&TokenKind::LParen) {
+                    let binding = self.expect_ident("expected binding in enum pattern")?;
+                    self.expect_simple(
+                        TokenKind::RParen,
+                        "expected `)` after enum pattern binding",
+                    )?;
+                    Some(binding)
+                } else {
+                    None
+                };
+                Ok(Pattern::EnumVariant {
+                    enum_name: name,
+                    variant,
+                    binding,
+                })
+            }
+            _ => Err(MiniError::parse("expected match pattern", token.span)),
         }
     }
-
     fn current_binary_op(&self) -> Option<(BinaryOp, u8)> {
         match self.current().kind {
             TokenKind::OrOr => Some((BinaryOp::Or, 1)),

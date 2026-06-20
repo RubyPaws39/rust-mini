@@ -328,6 +328,12 @@ pub struct MatchArm {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern {
     Wildcard,
+    Binding(String),
+    Int(i64),
+    Bool(bool),
+    String(String),
+    Unit,
+    Tuple(Vec<Pattern>),
     EnumVariant {
         enum_name: String,
         variant: String,

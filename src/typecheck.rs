@@ -1348,114 +1348,58 @@ impl<'a> TypeChecker<'a> {
             }
             Expression::Match { value, arms, span } => {
                 let value_ty = self.check_expr(value, env, loop_depth)?;
-                let (enum_name, variants) = match value_ty {
+                let enum_context = match &value_ty {
                     Type::Enum(enum_name) => {
-                        let variants = self.enums.get(&enum_name).ok_or_else(|| {
+                        let variants = self.enums.get(enum_name).ok_or_else(|| {
                             MiniError::type_error(
                                 format!("unknown enum `{}`", enum_name),
                                 Some(*span),
                             )
                         })?;
-                        (enum_name, variants.clone())
+                        Some((enum_name.clone(), variants.clone()))
                     }
-                    Type::Option(inner) => (
+                    Type::Option(inner) => Some((
                         "Option".to_string(),
                         vec![
                             EnumVariant {
                                 name: "Some".to_string(),
-                                payload: Some(*inner),
+                                payload: Some(*inner.clone()),
                             },
                             EnumVariant {
                                 name: "None".to_string(),
                                 payload: None,
                             },
                         ],
-                    ),
-                    Type::Result(ok, err) => (
+                    )),
+                    Type::Result(ok, err) => Some((
                         "Result".to_string(),
                         vec![
                             EnumVariant {
                                 name: "Ok".to_string(),
-                                payload: Some(*ok),
+                                payload: Some(*ok.clone()),
                             },
                             EnumVariant {
                                 name: "Err".to_string(),
-                                payload: Some(*err),
+                                payload: Some(*err.clone()),
                             },
                         ],
-                    ),
-                    _ => {
-                        return Err(MiniError::type_error(
-                            "match expects enum, Option, or Result value",
-                            Some(*span),
-                        ));
-                    }
+                    )),
+                    _ => None,
                 };
                 let mut result_ty = None;
-                let mut has_wildcard = false;
+                let mut has_catch_all = false;
                 let mut covered = Vec::new();
                 for arm in arms {
                     env.push(HashMap::new());
-                    match &arm.pattern {
-                        Pattern::Wildcard => has_wildcard = true,
-                        Pattern::EnumVariant {
-                            enum_name: pat_enum,
-                            variant,
-                            binding,
-                        } => {
-                            if pat_enum != &enum_name {
-                                return Err(MiniError::type_error(
-                                    format!(
-                                        "expected enum `{}`, found pattern for `{}`",
-                                        enum_name, pat_enum
-                                    ),
-                                    Some(arm.span),
-                                ));
-                            }
-                            let def = variants
-                                .iter()
-                                .find(|candidate| candidate.name == *variant)
-                                .ok_or_else(|| {
-                                    MiniError::type_error(
-                                        format!(
-                                            "unknown variant `{}` for enum `{}`",
-                                            variant, enum_name
-                                        ),
-                                        Some(arm.span),
-                                    )
-                                })?;
-                            covered.push(variant.clone());
-                            match (&def.payload, binding) {
-                                (Some(payload), Some(name)) => {
-                                    env.last_mut().unwrap().insert(
-                                        name.clone(),
-                                        VarInfo {
-                                            ty: payload.clone(),
-                                            mutable: false,
-                                        },
-                                    );
-                                }
-                                (Some(_), None) => {
-                                    return Err(MiniError::type_error(
-                                        format!(
-                                            "variant `{}::{}` payload must be bound",
-                                            enum_name, variant
-                                        ),
-                                        Some(arm.span),
-                                    ));
-                                }
-                                (None, Some(_)) => {
-                                    return Err(MiniError::type_error(
-                                        format!(
-                                            "variant `{}::{}` has no payload",
-                                            enum_name, variant
-                                        ),
-                                        Some(arm.span),
-                                    ));
-                                }
-                                (None, None) => {}
-                            }
-                        }
+                    if self.check_match_pattern(
+                        &arm.pattern,
+                        &value_ty,
+                        env,
+                        enum_context.as_ref(),
+                        &mut covered,
+                        arm.span,
+                    )? {
+                        has_catch_all = true;
                     }
                     let arm_ty = self.check_expr(&arm.body, env, loop_depth)?;
                     env.pop();
@@ -1465,11 +1409,14 @@ impl<'a> TypeChecker<'a> {
                         result_ty = Some(arm_ty);
                     }
                 }
-                if !has_wildcard
-                    && variants
+                if let Some((_, variants)) = &enum_context {
+                    let all_covered = variants
                         .iter()
-                        .any(|variant| !covered.contains(&variant.name))
-                {
+                        .all(|variant| covered.iter().any(|name| name == &variant.name));
+                    if !has_catch_all && !all_covered {
+                        return Err(MiniError::type_error("non-exhaustive match", Some(*span)));
+                    }
+                } else if !has_catch_all {
                     return Err(MiniError::type_error("non-exhaustive match", Some(*span)));
                 }
                 Ok(result_ty.unwrap_or(Type::Unit))
@@ -1541,6 +1488,125 @@ impl<'a> TypeChecker<'a> {
         }
     }
 
+    fn check_match_pattern(
+        &self,
+        pattern: &Pattern,
+        value_ty: &Type,
+        env: &mut Vec<HashMap<String, VarInfo>>,
+        enum_context: Option<&(String, Vec<EnumVariant>)>,
+        covered: &mut Vec<String>,
+        span: Span,
+    ) -> Result<bool> {
+        match pattern {
+            Pattern::Wildcard => Ok(true),
+            Pattern::Binding(name) => {
+                env.last_mut().unwrap().insert(
+                    name.clone(),
+                    VarInfo {
+                        ty: value_ty.clone(),
+                        mutable: false,
+                    },
+                );
+                Ok(true)
+            }
+            Pattern::Int(_) => {
+                self.expect_type(&Type::I64, value_ty, Some(span))?;
+                Ok(false)
+            }
+            Pattern::Bool(_) => {
+                self.expect_type(&Type::Bool, value_ty, Some(span))?;
+                Ok(false)
+            }
+            Pattern::String(_) => {
+                self.expect_type(&Type::String, value_ty, Some(span))?;
+                Ok(false)
+            }
+            Pattern::Unit => {
+                self.expect_type(&Type::Unit, value_ty, Some(span))?;
+                Ok(true)
+            }
+            Pattern::Tuple(items) => {
+                let Type::Tuple(types) = value_ty else {
+                    return Err(MiniError::type_error(
+                        format!("tuple pattern expects tuple value, found `{:?}`", value_ty),
+                        Some(span),
+                    ));
+                };
+                if items.len() != types.len() {
+                    return Err(MiniError::type_error(
+                        format!(
+                            "tuple pattern has {} fields, value has {}",
+                            items.len(),
+                            types.len()
+                        ),
+                        Some(span),
+                    ));
+                }
+                let mut catch_all = true;
+                for (item, item_ty) in items.iter().zip(types) {
+                    catch_all &=
+                        self.check_match_pattern(item, item_ty, env, None, covered, span)?;
+                }
+                Ok(catch_all)
+            }
+            Pattern::EnumVariant {
+                enum_name: pat_enum,
+                variant,
+                binding,
+            } => {
+                let Some((enum_name, variants)) = enum_context else {
+                    return Err(MiniError::type_error(
+                        "enum pattern can only match enum, Option, or Result values",
+                        Some(span),
+                    ));
+                };
+                if pat_enum != enum_name {
+                    return Err(MiniError::type_error(
+                        format!(
+                            "expected enum `{}`, found pattern for `{}`",
+                            enum_name, pat_enum
+                        ),
+                        Some(span),
+                    ));
+                }
+                let def = variants
+                    .iter()
+                    .find(|candidate| candidate.name == *variant)
+                    .ok_or_else(|| {
+                        MiniError::type_error(
+                            format!("unknown variant `{}` for enum `{}`", variant, enum_name),
+                            Some(span),
+                        )
+                    })?;
+                covered.push(variant.clone());
+                match (&def.payload, binding) {
+                    (Some(payload), Some(name)) => {
+                        env.last_mut().unwrap().insert(
+                            name.clone(),
+                            VarInfo {
+                                ty: payload.clone(),
+                                mutable: false,
+                            },
+                        );
+                    }
+                    (Some(_), None) => {
+                        return Err(MiniError::type_error(
+                            format!("variant `{}::{}` payload must be bound", enum_name, variant),
+                            Some(span),
+                        ));
+                    }
+                    (None, Some(_)) => {
+                        return Err(MiniError::type_error(
+                            format!("variant `{}::{}` has no payload", enum_name, variant),
+                            Some(span),
+                        ));
+                    }
+                    (None, None) => {}
+                }
+                Ok(false)
+            }
+        }
+    }
     fn expect_type(&self, expected: &Type, actual: &Type, span: Option<Span>) -> Result<()> {
         let expected_plain = expected.without_lifetimes();
         let actual_plain = actual.without_lifetimes();

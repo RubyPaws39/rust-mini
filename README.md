@@ -88,7 +88,7 @@ Data modeling:
 - enums
 - built-in `Option<T>`
 - built-in `Result<T, E>`
-- basic `match` over enum variants
+- `match` over enums, literals, tuples, wildcard `_`, and binding patterns
 - basic traits and `impl Trait for Type`
 - inherent `impl` methods
 - `self`, `&self`, `&mut self`
@@ -224,6 +224,7 @@ cargo run -- examples\functions.rmini
 cargo run -- examples\borrow_ok.rmini
 cargo run -- examples\lifetimes.rmini
 cargo run -- examples\destructuring.rmini
+cargo run -- examples\match_patterns.rmini
 cargo run -- examples\question_operator.rmini
 cargo run -- examples\control_flow.rmini
 cargo run -- examples\data_types.rmini
@@ -313,7 +314,6 @@ Missing or incomplete:
 - closures
 - full macro system
 - Rust's `?` error-propagation operator is not supported yet; use `match` or `.unwrap_or(...)`
-- full pattern matching
 - real crate/package manager
 - full module privacy
 - threads and async
@@ -438,5 +438,6 @@ Best way to help:
 ## License
 
 License not chosen yet. Pick one before publishing broadly, usually MIT or Apache-2.0 for open source Rust projects.
+
 
 

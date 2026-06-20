@@ -301,6 +301,53 @@ impl<'a> BorrowChecker<'a> {
         Ok(())
     }
 
+    fn bind_match_pattern(
+        &self,
+        pattern: &Pattern,
+        ty: &Type,
+        env: &mut Vec<HashMap<String, VarState>>,
+    ) -> Result<()> {
+        match pattern {
+            Pattern::Binding(name) => self.insert_pattern_binding(name, ty.clone(), env),
+            Pattern::EnumVariant {
+                binding: Some(name),
+                ..
+            } => self.insert_pattern_binding(name, Type::Unit, env),
+            Pattern::Tuple(items) => {
+                if let Type::Tuple(types) = ty {
+                    for (item, item_ty) in items.iter().zip(types) {
+                        self.bind_match_pattern(item, item_ty, env)?;
+                    }
+                }
+                Ok(())
+            }
+            Pattern::Wildcard
+            | Pattern::Int(_)
+            | Pattern::Bool(_)
+            | Pattern::String(_)
+            | Pattern::Unit
+            | Pattern::EnumVariant { .. } => Ok(()),
+        }
+    }
+
+    fn insert_pattern_binding(
+        &self,
+        name: &str,
+        ty: Type,
+        env: &mut Vec<HashMap<String, VarState>>,
+    ) -> Result<()> {
+        env.last_mut().unwrap().insert(
+            name.to_string(),
+            VarState {
+                ty,
+                mutable: false,
+                moved: false,
+                immut_borrows: 0,
+                mut_borrowed: false,
+            },
+        );
+        Ok(())
+    }
     fn check_expr(
         &self,
         expr: &Expression,
@@ -1035,22 +1082,7 @@ impl<'a> BorrowChecker<'a> {
                 }
                 for arm in arms {
                     env.push(HashMap::new());
-                    if let Pattern::EnumVariant {
-                        binding: Some(binding),
-                        ..
-                    } = &arm.pattern
-                    {
-                        env.last_mut().unwrap().insert(
-                            binding.clone(),
-                            VarState {
-                                ty: Type::Unit,
-                                mutable: false,
-                                moved: false,
-                                immut_borrows: 0,
-                                mut_borrowed: false,
-                            },
-                        );
-                    }
+                    self.bind_match_pattern(&arm.pattern, &effect.ty, env)?;
                     let effect = self.check_expr(&arm.body, env)?;
                     if let Some(loan) = effect.loan {
                         self.release_loan(&loan, env);

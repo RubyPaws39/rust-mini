@@ -1,0 +1,28 @@
+fn describe(n: i64) -> String {
+    match n {
+        0 => "zero",
+        1 => "one",
+        other => "many",
+    }
+}
+
+fn main() {
+    print(describe(0));
+    print(describe(9));
+
+    let pair = (1, 7);
+    let score: i64 = match pair {
+        (0, value) => value,
+        (1, value) => value + 10,
+        _ => 0,
+    };
+    print(score);
+
+    let flag: bool = true;
+    let text: String = match flag {
+        true => "yes",
+        _ => "no",
+    };
+    print(text);
+}
+

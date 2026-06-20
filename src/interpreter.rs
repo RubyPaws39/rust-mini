@@ -1231,18 +1231,9 @@ impl<'a> Interpreter<'a> {
             }
             Expression::Match { value, arms, .. } => {
                 let value = self.eval_expr(value)?;
-                let Value::Enum {
-                    enum_name,
-                    variant,
-                    value,
-                } = value
-                else {
-                    return Err(MiniError::runtime("match expects enum value"));
-                };
                 for arm in arms {
                     self.frames.push(HashMap::new());
-                    let matched =
-                        self.pattern_matches(&arm.pattern, &enum_name, &variant, value.as_deref())?;
+                    let matched = self.pattern_matches(&arm.pattern, &value)?;
                     if matched {
                         let result = self.eval_expr(&arm.body);
                         self.frames.pop();
@@ -1463,31 +1454,65 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn pattern_matches(
-        &mut self,
-        pattern: &Pattern,
-        enum_name: &str,
-        variant: &str,
-        payload: Option<&Value>,
-    ) -> Result<bool> {
+    fn pattern_matches(&mut self, pattern: &Pattern, value: &Value) -> Result<bool> {
         match pattern {
             Pattern::Wildcard => Ok(true),
+            Pattern::Binding(name) => {
+                self.frames.last_mut().unwrap().insert(
+                    name.clone(),
+                    RuntimeVar {
+                        value: value.clone(),
+                        mutable: false,
+                    },
+                );
+                Ok(true)
+            }
+            Pattern::Int(expected) => Ok(matches!(value, Value::Int(actual) if actual == expected)),
+            Pattern::Bool(expected) => {
+                Ok(matches!(value, Value::Bool(actual) if actual == expected))
+            }
+            Pattern::String(expected) => {
+                Ok(matches!(value, Value::String(actual) if actual == expected))
+            }
+            Pattern::Unit => Ok(*value == Value::Unit),
+            Pattern::Tuple(patterns) => {
+                let Value::Tuple(values) = value else {
+                    return Ok(false);
+                };
+                if patterns.len() != values.len() {
+                    return Ok(false);
+                }
+                for (pattern, value) in patterns.iter().zip(values) {
+                    if !self.pattern_matches(pattern, value)? {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
             Pattern::EnumVariant {
                 enum_name: pat_enum,
                 variant: pat_variant,
                 binding,
             } => {
+                let Value::Enum {
+                    enum_name,
+                    variant,
+                    value,
+                } = value
+                else {
+                    return Ok(false);
+                };
                 if pat_enum != enum_name || pat_variant != variant {
                     return Ok(false);
                 }
                 if let Some(binding) = binding {
-                    let Some(value) = payload else {
+                    let Some(value) = value else {
                         return Err(MiniError::runtime("enum pattern expected payload"));
                     };
                     self.frames.last_mut().unwrap().insert(
                         binding.clone(),
                         RuntimeVar {
-                            value: value.clone(),
+                            value: (**value).clone(),
                             mutable: false,
                         },
                     );
@@ -1496,7 +1521,6 @@ impl<'a> Interpreter<'a> {
             }
         }
     }
-
     fn assign_nested(&mut self, target: &Expression, step: PathStep, value: Value) -> Result<()> {
         match target {
             Expression::Var(name, _) if name == "self" => {

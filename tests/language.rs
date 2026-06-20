@@ -462,6 +462,7 @@ fn checks_all_success_examples() {
         "examples/borrow_ok.rmini",
         "examples/lifetimes.rmini",
         "examples/destructuring.rmini",
+        "examples/match_patterns.rmini",
         "examples/question_operator.rmini",
         "examples/control_flow.rmini",
         "examples/loop_control.rmini",
@@ -668,6 +669,12 @@ fn runs_function_call_and_return() {
 fn runs_mutable_reference_call() {
     let source = include_str!("../examples/borrow_ok.rmini");
     assert_eq!(parse_check_run(source), vec!["9"]);
+}
+
+#[test]
+fn runs_literal_tuple_and_binding_match_patterns() {
+    let source = include_str!("../examples/match_patterns.rmini");
+    assert_eq!(parse_check_run(source), vec!["zero", "many", "17", "yes"]);
 }
 
 #[test]

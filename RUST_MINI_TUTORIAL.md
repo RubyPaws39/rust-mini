@@ -398,7 +398,19 @@ fn main() {
 }
 ```
 
-`match` must cover every enum variant.
+`match` must be exhaustive. It supports enum variants, literals, tuples, wildcard `_`, and binding patterns:
+
+```rust
+fn main() {
+    let pair = (1, 7);
+    let score: i64 = match pair {
+        (0, value) => value,
+        (1, value) => value + 10,
+        _ => 0,
+    };
+    println!("{}", score);
+}
+```
 
 ## 17. Option And Result
 
@@ -637,6 +649,7 @@ fn main() {
 cargo run -- examples\interactive_calculator.rmini
 cargo run -- examples\lifetimes.rmini
 cargo run -- examples\destructuring.rmini
+cargo run -- examples\match_patterns.rmini
 cargo run -- examples\question_operator.rmini
 cargo run -- examples\rpg_demo.rmini
 cargo run -- examples\animated_pong.rmini
@@ -669,7 +682,6 @@ Missing or incomplete:
 - non-lexical lifetimes
 - closures
 - full macro system
-- full pattern matching
 - real crate/package manager
 - full module privacy
 - threads and async
@@ -678,5 +690,6 @@ Missing or incomplete:
 - GUI/window backend
 
 But Rust Mini can already write useful medium programs with Rust-style syntax, ownership, borrowing, structs, enums, match, methods, vectors, loops, formatting, standard helpers, and file I/O.
+
 
 
