@@ -1,5 +1,6 @@
 pub mod ast;
 pub mod borrowcheck;
+pub mod bytecode;
 pub mod error;
 pub mod interpreter;
 pub mod lexer;

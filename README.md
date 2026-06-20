@@ -13,6 +13,7 @@ Status: learning language, serious MVP, not full Rust.
 ```powershell
 cd R:\Rust\rust_mini
 cargo run -- examples\hello.rmini
+cargo run -- --vm examples\hello.rmini
 ```
 
 Downloaded the ZIP? Read [INSTALL_AND_USE.md](INSTALL_AND_USE.md).
@@ -47,7 +48,7 @@ fn damage(value: &mut i64) {
 ## What Rust Mini Can Do
 
 - run `.rmini` scripts from the command line
-- lex, parse, type-check, borrow-check, then interpret programs
+- lex, parse, type-check, borrow-check, then run core scripts through bytecode VM
 - use Rust-like syntax instead of fake simplified syntax
 - catch basic type errors
 - catch basic ownership and borrow errors
@@ -103,6 +104,38 @@ References and safety:
 - simple borrow checking
 - no garbage collector
 
+
+## Install Command
+
+Install from a local checkout:
+
+```powershell
+cargo install --path .
+```
+
+That installs the command:
+
+```powershell
+rmini examples\hello.rmini
+rmini --check examples\hello.rmini
+rmini --vm examples\hello.rmini
+```
+
+## Bytecode VM
+
+Rust Mini now has a bytecode MVP for core scripts. Normal runs try bytecode first and fall back to the AST interpreter when a feature is not lowered yet.
+
+Force bytecode:
+
+```powershell
+rmini --vm examples\math.rmini
+```
+
+Force the original AST interpreter:
+
+```powershell
+rmini --ast-run examples\math.rmini
+```
 ## Standard Library
 
 Rust Mini has a small host standard library:
@@ -219,6 +252,7 @@ Run any of these:
 
 ```powershell
 cargo run -- examples\hello.rmini
+cargo run -- --vm examples\hello.rmini
 cargo run -- examples\math.rmini
 cargo run -- examples\functions.rmini
 cargo run -- examples\borrow_ok.rmini
@@ -438,6 +472,8 @@ Best way to help:
 ## License
 
 License not chosen yet. Pick one before publishing broadly, usually MIT or Apache-2.0 for open source Rust projects.
+
+
 
 
 

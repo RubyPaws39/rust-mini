@@ -11,6 +11,7 @@ From the project folder:
 ```powershell
 cd R:\Rust\rust_mini
 cargo run -- examples\hello.rmini
+cargo run -- --vm examples\hello.rmini
 ```
 
 Useful CLI modes:
@@ -690,6 +691,7 @@ Missing or incomplete:
 - GUI/window backend
 
 But Rust Mini can already write useful medium programs with Rust-style syntax, ownership, borrowing, structs, enums, match, methods, vectors, loops, formatting, standard helpers, and file I/O.
+
 
 
 

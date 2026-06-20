@@ -1,4 +1,5 @@
 use rust_mini::borrowcheck::BorrowChecker;
+use rust_mini::bytecode::{compile_program, BytecodeVm};
 use rust_mini::interpreter::Interpreter;
 use rust_mini::lexer::Lexer;
 use rust_mini::parse_file_with_modules;
@@ -32,7 +33,7 @@ fn run() -> Result<(), String> {
         process::exit(2);
     }
     if cli_args.len() == 1 && (cli_args[0] == "--version" || cli_args[0] == "-V") {
-        println!("rust_mini {}", env!("CARGO_PKG_VERSION"));
+        println!("rmini {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
     if cli_args.len() == 1 && (cli_args[0] == "--help" || cli_args[0] == "-h") {
@@ -47,7 +48,10 @@ fn run() -> Result<(), String> {
     } else {
         ("--run", cli_args[0].as_str())
     };
-    if !matches!(mode, "--run" | "--tokens" | "--ast" | "--check") {
+    if !matches!(
+        mode,
+        "--run" | "--vm" | "--ast-run" | "--tokens" | "--ast" | "--check"
+    ) {
         return Err(format!("runtime error: unknown option `{}`", mode));
     }
 
@@ -86,6 +90,23 @@ fn run() -> Result<(), String> {
         return Ok(());
     }
 
+    if mode == "--vm" {
+        let bytecode = compile_program(&program).map_err(|e| e.render_with_source(&source))?;
+        BytecodeVm::with_live_output(&bytecode)
+            .run()
+            .map_err(|e| e.render_with_source(&source))?;
+        return Ok(());
+    }
+
+    if mode != "--ast-run" {
+        if let Ok(bytecode) = compile_program(&program) {
+            BytecodeVm::with_live_output(&bytecode)
+                .run()
+                .map_err(|e| e.render_with_source(&source))?;
+            return Ok(());
+        }
+    }
+
     for line in Interpreter::with_args_and_live_output(&program, program_args)
         .run()
         .map_err(|e| e.render_with_source(&source))?
@@ -96,8 +117,8 @@ fn run() -> Result<(), String> {
 }
 
 fn print_usage() {
-    eprintln!("rust_mini {}", env!("CARGO_PKG_VERSION"));
-    eprintln!("usage: rust_mini [--tokens|--ast|--check|--version|--help] <file.rmini>");
-    eprintln!("       rust_mini run <file.rmini>");
-    eprintln!("       rust_mini <file.rmini> -- [program args...]");
+    eprintln!("rmini {}", env!("CARGO_PKG_VERSION"));
+    eprintln!("usage: rmini [--vm|--ast-run|--tokens|--ast|--check|--version|--help] <file.rmini>");
+    eprintln!("       rmini run <file.rmini>");
+    eprintln!("       rmini <file.rmini> -- [program args...]");
 }

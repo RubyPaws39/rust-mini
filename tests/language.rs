@@ -1,10 +1,19 @@
 use rust_mini::borrowcheck::BorrowChecker;
+use rust_mini::bytecode::{compile_program, BytecodeVm};
 use rust_mini::interpreter::Interpreter;
 use rust_mini::lexer::Lexer;
 use rust_mini::parse_file_with_modules;
 use rust_mini::parser::Parser;
 use rust_mini::typecheck::TypeChecker;
 
+fn parse_check_run_vm(source: &str) -> Vec<String> {
+    let tokens = Lexer::new(source).lex().unwrap();
+    let program = Parser::new(tokens).parse_program().unwrap();
+    TypeChecker::new(&program).check().unwrap();
+    BorrowChecker::new(&program).check().unwrap();
+    let bytecode = compile_program(&program).unwrap();
+    BytecodeVm::new(&bytecode).run().unwrap()
+}
 fn parse_check_run(source: &str) -> Vec<String> {
     parse_check_run_with_args(source, Vec::new())
 }
@@ -39,6 +48,29 @@ fn runtime_error_without_check(source: &str) -> String {
     Interpreter::new(&program).run().unwrap_err().to_string()
 }
 
+#[test]
+fn bytecode_runs_core_programs() {
+    assert_eq!(
+        parse_check_run_vm(include_str!("../examples/hello.rmini")),
+        vec!["Hello from Rust Mini!"]
+    );
+    assert_eq!(
+        parse_check_run_vm(include_str!("../examples/math.rmini")),
+        vec!["15"]
+    );
+    assert_eq!(
+        parse_check_run_vm(include_str!("../examples/functions.rmini")),
+        vec!["5"]
+    );
+    assert_eq!(
+        parse_check_run_vm(include_str!("../benchmarks/sum_loop.rmini")),
+        vec!["19999900000"]
+    );
+    assert_eq!(
+        parse_check_run_vm(include_str!("../benchmarks/fib.rmini")),
+        vec!["46368"]
+    );
+}
 #[test]
 fn runs_control_flow() {
     let source = include_str!("../examples/control_flow.rmini");
